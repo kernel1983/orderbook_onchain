@@ -42,9 +42,51 @@ class App extends React.Component {
   }
 
   render() {
+    if (this.state.screenWidth < 1400) {
+      return React.createElement('div', { className: 'app' },
+        React.createElement(Header, null),
+        React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
+        React.createElement('div', { className: 'flex flex-row' },
+          React.createElement('div', { className: 'flex-auto' },
+            React.createElement('h2', { className: 'text-lg font-bold' }, 'Chart Panel'),
+          ),
+          React.createElement('div', { className: 'bg-red-500', style: {width:'300px'} },
+            React.createElement('h2', { className: 'text-lg font-bold' }, 'Order Panel'),
+          )
+        ),
+        React.createElement('div', { className: 'flex flex-row' },
+          React.createElement('div', { className: 'flex-auto' },
+            React.createElement('h2', { className: 'text-lg font-bold' }, 'Info Panel'),
+          ),
+          React.createElement('div', { className: 'bg-green-500', style: {width:'300px'} },
+            React.createElement('h2', { className: 'text-lg font-bold' }, 'Assets Panel'),
+            React.createElement('h2', { className: 'text-lg font-bold' }, 'Market Panel'),
+          ),
+        ),
+      );
+    }
     return React.createElement('div', { className: 'app' },
       React.createElement(Header, null),
-      React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`)
+      React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
+      React.createElement('div', { className: 'flex flex-row' },
+        React.createElement('div', { className: 'flex-auto' },
+          React.createElement('h2', { className: 'text-lg font-bold' }, 'Chart Panel'),
+        ),
+        React.createElement('div', { className: 'bg-yellow-500', style: {width:'300px'} },
+          React.createElement('h2', { className: 'text-lg font-bold' }, 'Market Panel'),
+        ),
+        React.createElement('div', { className: 'bg-red-500', style: {width:'300px'} },
+          React.createElement('h2', { className: 'text-lg font-bold' }, 'Order Panel'),
+        )
+      ),
+      React.createElement('div', { className: 'flex flex-row' },
+        React.createElement('div', { className: 'flex-auto' },
+          React.createElement('h2', { className: 'text-lg font-bold' }, 'Info Panel'),
+        ),
+        React.createElement('div', { className: 'bg-green-500', style: {width:'300px'} },
+          React.createElement('h2', { className: 'text-lg font-bold' }, 'Assets Panel'),
+        )
+      ),
     );
   }
 }

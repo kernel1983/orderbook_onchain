@@ -6,3 +6,37 @@
   align-items: center;
   padding: 10px 20px;
 }
+
+.menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.menu li {
+  margin-right: 20px;
+}
+
+@media (max-width: 600px) {
+  .menu ul {
+    flex-direction: column;
+    position: absolute;
+    top: 45px;
+    left: 0;
+    width: 100%;
+    background-color: #000;
+    z-index: 1000;
+  }
+  .menu li {
+    margin-right: 0;
+  }
+  .menu li a {
+    display: block;
+    padding: 10px 0;
+    text-align: center;
+  }
+}
+
+
+
