@@ -19,6 +19,9 @@
 }
 
 @media (max-width: 600px) {
+  .menu {
+    display: none;
+  }
   .menu ul {
     flex-direction: column;
     position: absolute;
@@ -39,4 +42,11 @@
 }
 
 
+
+.tool-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
 
