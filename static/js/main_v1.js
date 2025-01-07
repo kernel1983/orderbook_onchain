@@ -1,3 +1,4 @@
+
 class Header extends React.Component {
   render() {
     return React.createElement('header', { className: 'header' },
@@ -21,29 +22,57 @@ class Header extends React.Component {
 class ChartPanel extends React.Component {
   render() {
     return React.createElement('div', { className: 'chart-panel bg-yellow-500' },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'chart Panel',
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-      )
+      React.createElement('h2', { className: 'text-lg font-bold' }, 'Chart Panel'),
+      React.createElement('div', { id: 'lightweight-charts', style:{ minHeight:'400px' } })
     );
+  }
+
+  componentDidMount() {
+    const chartDiv = document.getElementById('lightweight-charts');
+    const chartWidth = chartDiv.offsetWidth;
+    const chartHeight = chartDiv.offsetHeight;
+    console.log(chartWidth);
+    console.log(chartHeight);
+    this.chart = LightweightCharts.createChart(document.getElementById('lightweight-charts'), { width: chartWidth, height: chartHeight });
+    const lineSeries = this.chart.addLineSeries();
+    lineSeries.setData([
+      { time: '2023-01-01', value: 10 },
+      { time: '2023-02-01', value: 15 },
+      { time: '2023-03-01', value: 20 },
+      { time: '2023-04-01', value: 18 },
+      { time: '2023-05-01', value: 25 },
+    ]);
+
+    window.addEventListener('resize', this.handleResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize); 
+  }
+
+  handleResize = () => {
+    const chartDiv = document.getElementById('lightweight-charts');
+    const chartHeight = chartDiv.offsetHeight;
+    console.log(chartHeight);
+
+    let chartWidth;
+    if (window.innerWidth < 960) {
+      chartWidth = window.innerWidth;
+    }else if (window.innerWidth < 1400) {
+      chartWidth = window.innerWidth - 300;
+    }else{
+      chartWidth = window.innerWidth - 600;
+    }
+    chartWidth -= 20;
+    console.log(chartWidth);
+
+    this.chart.resize(chartWidth, chartHeight);
   }
 }
 
 class MarketPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'market-panel bg-pink-500' },
+    return React.createElement('div', { className: 'market-panel bg-pink-500', style: { minWidth: '300px'}  },
       React.createElement('h2', { className: 'text-lg font-bold' }, 'market Panel')
     );
   }
@@ -51,7 +80,7 @@ class MarketPanel extends React.Component {
 
 class OrderPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'order-panel bg-gray-500' },
+    return React.createElement('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px'} },
       React.createElement('h2', { className: 'text-lg font-bold' }, 'order Panel')
     );
   }
@@ -124,7 +153,7 @@ class App extends React.Component {
   }
 
   render() {
-    if (this.state.screenWidth < 960) {
+    if (window.innerWidth < 960) {
       return React.createElement('div', { className: 'app' },
         React.createElement(Header, null),
         React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
@@ -134,7 +163,7 @@ class App extends React.Component {
       );
     }
 
-    if (this.state.screenWidth < 1400) {
+    if (window.innerWidth < 1400) {
       return React.createElement('div', { className: 'app' },
         React.createElement(Header, null),
         React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
@@ -157,6 +186,7 @@ class App extends React.Component {
         ),
       );
     }
+
     return React.createElement('div', { className: 'app' },
       React.createElement(Header, null),
       React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
