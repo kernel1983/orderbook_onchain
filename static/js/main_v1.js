@@ -1,19 +1,21 @@
 
+let rc = React.createElement;
+
 class Header extends React.Component {
   render() {
-    return React.createElement('header', { className: 'header' },
-      React.createElement('div', { className: 'logo' },
-        React.createElement('img', { src: 'logo.png', alt: 'Logo' })
+    return rc('header', { className: 'header' },
+      rc('div', { className: 'logo' },
+        rc('img', { src: 'logo.png', alt: 'Logo' })
       ),
-      React.createElement('nav', { className: 'menu' },
-        React.createElement('ul', null,
-          React.createElement('li', null, React.createElement('a', { href: '#' }, 'Home')),
-          React.createElement('li', null, React.createElement('a', { href: '#' }, 'About')),
-          React.createElement('li', null, React.createElement('a', { href: '#' }, 'Contact'))
+      rc('nav', { className: 'menu' },
+        rc('ul', null,
+          rc('li', null, rc('a', { href: '#' }, 'Home')),
+          rc('li', null, rc('a', { href: '#' }, 'About')),
+          rc('li', null, rc('a', { href: '#' }, 'Contact'))
         )
       ),
-      React.createElement('div', { className: 'login' },
-        React.createElement('button', null, 'Login')
+      rc('div', { className: 'login' },
+        rc('button', null, 'Login')
       )
     );
   }
@@ -21,9 +23,9 @@ class Header extends React.Component {
 
 class ChartPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'chart-panel bg-yellow-500' },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'Chart Panel'),
-      React.createElement('div', { id: 'lightweight-charts', style:{ minHeight:'400px' } })
+    return rc('div', { className: 'chart-panel bg-yellow-500' },
+      rc('h2', { className: 'text-lg font-bold' }, 'Chart Panel'),
+      rc('div', { id: 'lightweight-charts', style:{ minHeight:'400px' } })
     );
   }
 
@@ -72,42 +74,42 @@ class ChartPanel extends React.Component {
 
 class MarketPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'market-panel bg-pink-500', style: { minWidth: '300px'}  },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'market Panel')
+    return rc('div', { className: 'market-panel bg-pink-500', style: { minWidth: '300px'}  },
+      rc('h2', { className: 'text-lg font-bold' }, 'market Panel')
     );
   }
 }
 
 class OrderPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px'} },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'order Panel')
+    return rc('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px'} },
+      rc('h2', { className: 'text-lg font-bold' }, 'order Panel')
     );
   }
 }
 
 class InfoPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'info-panel  bg-blue-500' },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'info Panel',
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
-        React.createElement('br', null, null),
+    return rc('div', { className: 'info-panel  bg-blue-500' },
+      rc('h2', { className: 'text-lg font-bold' }, 'info Panel',
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('br', null, null),
       )
     );
   }
@@ -115,16 +117,16 @@ class InfoPanel extends React.Component {
 
 class AssetsPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'assets-panel bg-purple-500' },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'assets Panel')
+    return rc('div', { className: 'assets-panel bg-purple-500' },
+      rc('h2', { className: 'text-lg font-bold' }, 'assets Panel')
     );
   }
 }
 
 class ToolPanel extends React.Component {
   render() {
-    return React.createElement('div', { className: 'tool-panel bg-purple-500' },
-      React.createElement('h2', { className: 'text-lg font-bold' }, 'Tool Panel')
+    return rc('div', { className: 'tool-panel bg-purple-500' },
+      rc('h2', { className: 'text-lg font-bold' }, 'Tool Panel')
     );
   }
 }
@@ -154,59 +156,59 @@ class App extends React.Component {
 
   render() {
     if (window.innerWidth < 960) {
-      return React.createElement('div', { className: 'app' },
-        React.createElement(Header, null),
-        React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
-        React.createElement(ChartPanel, null),
-        React.createElement(InfoPanel, null),
-        React.createElement(ToolPanel, null),
+      return rc('div', { className: 'app' },
+        rc(Header, null),
+        rc('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
+        rc(ChartPanel, null),
+        rc(InfoPanel, null),
+        rc(ToolPanel, null),
       );
     }
 
     if (window.innerWidth < 1400) {
-      return React.createElement('div', { className: 'app' },
-        React.createElement(Header, null),
-        React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
-        React.createElement('div', { className: 'flex flex-row' },
-          React.createElement('div', { className: 'flex-auto' },
-            React.createElement(ChartPanel, null),
+      return rc('div', { className: 'app' },
+        rc(Header, null),
+        rc('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
+        rc('div', { className: 'flex flex-row' },
+          rc('div', { className: 'flex-auto' },
+            rc(ChartPanel, null),
           ),
-          React.createElement('div', { className: '', style: {width:'300px'} },
-            React.createElement(OrderPanel, null),
+          rc('div', { className: '', style: {width:'300px'} },
+            rc(OrderPanel, null),
           )
         ),
-        React.createElement('div', { className: 'flex flex-row' },
-          React.createElement('div', { className: 'flex-auto' },
-            React.createElement(InfoPanel, null),
+        rc('div', { className: 'flex flex-row' },
+          rc('div', { className: 'flex-auto' },
+            rc(InfoPanel, null),
           ),
-          React.createElement('div', { className: '', style: {width:'300px'} },
-            React.createElement(AssetsPanel, null),
-            React.createElement(MarketPanel, null),
+          rc('div', { className: '', style: {width:'300px'} },
+            rc(AssetsPanel, null),
+            rc(MarketPanel, null),
           ),
         ),
       );
     }
 
-    return React.createElement('div', { className: 'app' },
-      React.createElement(Header, null),
-      React.createElement('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
-      React.createElement('div', { className: 'flex flex-row' },
-        React.createElement('div', { className: 'flex-auto' },
-          React.createElement(ChartPanel, null),
+    return rc('div', { className: 'app' },
+      rc(Header, null),
+      rc('h1', null, `Hello from React! Screen width: ${this.state.screenWidth}px`),
+      rc('div', { className: 'flex flex-row' },
+        rc('div', { className: 'flex-auto' },
+          rc(ChartPanel, null),
         ),
-        React.createElement('div', { className: '', style: {width:'300px'} },
-          React.createElement(MarketPanel, null),
+        rc('div', { className: '', style: {width:'300px'} },
+          rc(MarketPanel, null),
         ),
-        React.createElement('div', { className: '', style: {width:'300px'} },
-          React.createElement(OrderPanel, null),
+        rc('div', { className: '', style: {width:'300px'} },
+          rc(OrderPanel, null),
         )
       ),
-      React.createElement('div', { className: 'flex flex-row' },
-        React.createElement('div', { className: 'flex-auto' },
-          React.createElement(InfoPanel, null),
+      rc('div', { className: 'flex flex-row' },
+        rc('div', { className: 'flex-auto' },
+          rc(InfoPanel, null),
         ),
-        React.createElement('div', { className: '', style: {width:'300px'} },
-          React.createElement(AssetsPanel, null),
+        rc('div', { className: '', style: {width:'300px'} },
+          rc(AssetsPanel, null),
         )
       ),
     );
@@ -214,5 +216,5 @@ class App extends React.Component {
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App, null));
+root.render(rc(App, null));
 
