@@ -73,17 +73,73 @@ class ChartPanel extends React.Component {
 }
 
 class MarketPanel extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      activeTab: 'Order Book',
+    };
+  }
+
+  handleTabChange = (tab) => {
+    this.setState({ activeTab: tab });
+  };
+
   render() {
-    return rc('div', { className: 'market-panel bg-pink-500', style: { minWidth: '300px'}  },
-      rc('h2', { className: 'text-lg font-bold' }, 'market Panel')
+    return rc('div', { className: 'market-panel bg-pink-500', style: { minWidth: '300px', height: '100%' } },
+      rc('div', null,
+        rc('button', { className: this.state.activeTab === 'Order Book' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Order Book') }, 'Order Book'),
+        rc('button', { className: this.state.activeTab === 'Trades' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Trades') }, 'Trades')
+      ),
+      this.state.activeTab === 'Order Book' && rc('div', { className: 'order-book', style: { height: '100%' } }, 'Order Book Content'),
+      this.state.activeTab === 'Trades' && rc('div', { className: 'trades', style: { height: '100%' } }, 'Trades Content')
     );
   }
 }
 
 class OrderPanel extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      activeTab: 'Market',
+      tradeType: 'Buy', // Changed to a single variable
+    };
+  }
+
+  handleTabChange = (tab) => {
+    this.setState({ activeTab: tab });
+  };
+
+  handleTradeTypeChange = (type) => {
+    this.setState({ tradeType: type });
+  };
+
   render() {
-    return rc('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px'} },
-      rc('h2', { className: 'text-lg font-bold' }, 'order Panel')
+    return rc('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px', height: '100%' } },
+      rc('div', null,
+        rc('button', { className: this.state.activeTab === 'Market' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Market') }, 'Market'),
+        rc('button', { className: this.state.activeTab === 'Limit' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Limit') }, 'Limit')
+      ),
+      rc('div', null,
+        rc('button', { className: this.state.tradeType === 'Buy' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTradeTypeChange('Buy') }, 'Buy'),
+        rc('button', { className: this.state.tradeType === 'Sell' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTradeTypeChange('Sell') }, 'Sell')
+      ),
+      this.state.activeTab === 'Market' && rc('div', { className: 'market-tab' }, 'Market Tab Content'),
+      this.state.activeTab === 'Limit' && rc('div', { className: 'limit-tab' },
+        rc('label', null, 'Price:'),
+        rc('input', { type: 'text', placeholder: 'Enter price' }),
+        rc('br', null, null),
+        rc('label', null, 'Size:'),
+        rc('input', { type: 'text', placeholder: 'Enter size' }),
+        rc('select', null,
+          rc('option', { value: 'BTC' }, 'BTC'),
+          rc('option', { value: 'USD' }, 'USD')
+        ),
+        rc('br', null, null),
+        rc('br', null, null),
+        rc('input', { type: 'range', min: '0', max: '100' }),
+        rc('input', { type: 'text', placeholder: '' }),
+        rc('label', null, '%'),
+      )
     );
   }
 }
@@ -92,16 +148,6 @@ class InfoPanel extends React.Component {
   render() {
     return rc('div', { className: 'info-panel  bg-blue-500' },
       rc('h2', { className: 'text-lg font-bold' }, 'info Panel',
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('br', null, null),
         rc('br', null, null),
         rc('br', null, null),
         rc('br', null, null),

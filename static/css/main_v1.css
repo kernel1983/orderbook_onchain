@@ -41,6 +41,14 @@
   }
 }
 
+.market-panel button.active {
+  color: #fff;
+}
+
+
+.order-panel button.active {
+  color: #fff;
+}
 
 
 .tool-panel {
