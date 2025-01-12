@@ -1,4 +1,3 @@
-
 let rc = React.createElement;
 
 class Header extends React.Component {
@@ -115,11 +114,17 @@ class OrderPanel extends React.Component {
 
   render() {
     return rc('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px', height: '100%' } },
-      rc('div', null,
-        rc('button', { className: this.state.activeTab === 'Market' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Market') }, 'Market'),
-        rc('button', { className: this.state.activeTab === 'Limit' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTabChange('Limit') }, 'Limit')
+      rc('div', { className: 'tab-control' },
+        rc('button', { 
+          className: this.state.activeTab === 'Market' ? 'active' : '', 
+          onClick: () => this.handleTabChange('Market') 
+        }, 'Market'),
+        rc('button', { 
+          className: this.state.activeTab === 'Limit' ? 'active' : '', 
+          onClick: () => this.handleTabChange('Limit') 
+        }, 'Limit')
       ),
-      rc('div', null,
+      rc('div', { className: 'switch-control' },
         rc('button', { className: this.state.tradeType === 'Buy' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTradeTypeChange('Buy') }, 'Buy'),
         rc('button', { className: this.state.tradeType === 'Sell' ? 'text-lg font-bold active' : 'text-lg font-bold', onClick: () => this.handleTradeTypeChange('Sell') }, 'Sell')
       ),

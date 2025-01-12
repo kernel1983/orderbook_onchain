@@ -46,9 +46,43 @@
 }
 
 
+.order-panel {
+  padding-top: 10px;
+}
+
 .order-panel button.active {
   color: #fff;
 }
+
+.tab-control button {
+  border-bottom: white solid 1px;
+  margin: auto 2px;
+  padding: auto 12px;
+}
+
+.switch-control {
+  display: flex;
+  background: #374151;
+  border-radius: 9999px;
+  justify-content: center;
+  margin: 5px 80px auto 80px;
+  padding: 2px;
+}
+
+.switch-control button {
+  border-radius: 9999px;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: #9CA3AF;
+  transition: all 0.3s ease;
+}
+
+.switch-control button.active {
+  background: #4B5563;
+  color: white;
+}
+
 
 
 .tool-panel {
@@ -57,4 +91,3 @@
   left: 0;
   width: 100%;
 }
-
