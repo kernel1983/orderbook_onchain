@@ -130,20 +130,44 @@ class OrderPanel extends React.Component {
       ),
       this.state.activeTab === 'Market' && rc('div', { className: 'market-tab' }, 'Market Tab Content'),
       this.state.activeTab === 'Limit' && rc('div', { className: 'limit-tab' },
-        rc('label', null, 'Price:'),
-        rc('input', { type: 'text', placeholder: 'Enter price' }),
-        rc('br', null, null),
-        rc('label', null, 'Size:'),
-        rc('input', { type: 'text', placeholder: 'Enter size' }),
-        rc('select', null,
-          rc('option', { value: 'BTC' }, 'BTC'),
-          rc('option', { value: 'USD' }, 'USD')
+        rc('div', { className: 'price' },
+          rc('label', null, 'Price:'),
+          rc('input', { type: 'text', placeholder: 'Enter price' }),
         ),
-        rc('br', null, null),
-        rc('br', null, null),
-        rc('input', { type: 'range', min: '0', max: '100' }),
-        rc('input', { type: 'text', placeholder: '' }),
-        rc('label', null, '%'),
+        rc('div', { className: 'size' },
+          rc('label', null, 'Size:'),
+          rc('input', { type: 'text', placeholder: 'Enter size' }),
+          rc('select', null,
+            rc('option', { value: 'BTC' }, 'BTC'),
+            rc('option', { value: 'USD' }, 'USD')
+          ),
+        ),
+        rc('div', { className: 'range' },
+          rc('input', { 
+            type: 'range', 
+            min: '0', 
+            max: '100', 
+            defaultValue: '0', // Set default value to 0
+            value: this.state.rangeValue, // Load value from state
+            onChange: (e) => {
+              const value = e.target.value;
+              this.setState({ rangeValue: value });
+            } 
+          }),
+          rc('div', { className: 'percent' },
+            rc('input', { 
+              type: 'text', 
+              placeholder: '0', 
+              defaultValue: '0', 
+              value: this.state.rangeValue, 
+              onChange: (e) => {
+                const value = e.target.value;
+                this.setState({ rangeValue: value });
+              } 
+            }),
+            rc('label', null, '%'),
+          ),
+        ),
       )
     );
   }

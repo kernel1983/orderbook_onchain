@@ -65,7 +65,7 @@
   background: #374151;
   border-radius: 9999px;
   justify-content: center;
-  margin: 5px 80px auto 80px;
+  margin: 5px 80px 5px 80px;
   padding: 2px;
 }
 
@@ -83,7 +83,48 @@
   color: white;
 }
 
+.order-panel .price label,.order-panel .size label {
+  width: 50px;
+  display: inline-block;
+}
 
+.order-panel .price,.order-panel .size {
+  border-radius: 5px;
+  border: 1px solid white;
+  margin: 5px;
+  padding: 3px;
+}
+
+.order-panel input[type=text] {
+  background-color: transparent;
+  width: 100px;
+  outline: none;
+}
+
+.order-panel .range {
+  border-radius: 5px;
+  /* border: 1px solid white; */
+  margin: 3px;
+  padding: 3px;
+  display: flex;
+}
+
+.order-panel .range input[type=range]{
+  width: 220px;
+  display: inline-block;
+  margin-right: 10px;
+}
+
+.order-panel .range .percent {
+  width: 90px;
+  border-radius: 5px;
+  border: 1px solid white;
+  padding: 3px 0 0 8px;
+}
+
+.order-panel .range .percent input {
+  width: 50px;
+}
 
 .tool-panel {
   position: fixed;
