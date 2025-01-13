@@ -1,6 +1,27 @@
+import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js";
+
 let rc = React.createElement;
 
 class Header extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
+
+  handleMetamaskLogin = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      alert('MetaMask not installed!');
+    } else {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        this.setState({ ethAddress: accounts[0] });
+      } catch (error) {
+        console.error('Error logging in:', error);
+        alert('Login failed.');
+      }
+    }
+  }
+
   render() {
     return rc('header', { className: 'header' },
       rc('div', { className: 'logo' },
@@ -14,7 +35,7 @@ class Header extends React.Component {
         )
       ),
       rc('div', { className: 'login' },
-        rc('button', null, 'Login')
+        this.state.ethAddress ? this.state.ethAddress : rc('button', { onClick: this.handleMetamaskLogin }, 'Login with MetaMask')
       )
     );
   }
@@ -112,6 +133,10 @@ class OrderPanel extends React.Component {
     this.setState({ tradeType: type });
   };
 
+  placeOrder = () => {
+    alert('order');
+  };
+
   render() {
     return rc('div', { className: 'order-panel bg-gray-500', style: { minWidth: '300px', height: '100%' } },
       rc('div', { className: 'tab-control' },
@@ -168,7 +193,10 @@ class OrderPanel extends React.Component {
             rc('label', null, '%'),
           ),
         ),
-      )
+      ),
+      rc('div', { className: 'order' },
+        rc('button', { className: 'place-order-btn', onClick: () => this.placeOrder() }, 'Place Order'),
+      ),
     );
   }
 }

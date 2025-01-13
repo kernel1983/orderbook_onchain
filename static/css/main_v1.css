@@ -7,22 +7,22 @@
   padding: 10px 20px;
 }
 
-.menu ul {
+.header .menu ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
 }
 
-.menu li {
+.header .menu li {
   margin-right: 20px;
 }
 
 @media (max-width: 600px) {
-  .menu {
+  .header .menu {
     display: none;
   }
-  .menu ul {
+  .header .menu ul {
     flex-direction: column;
     position: absolute;
     top: 45px;
@@ -31,15 +31,22 @@
     background-color: #000;
     z-index: 1000;
   }
-  .menu li {
+  .header .menu li {
     margin-right: 0;
   }
-  .menu li a {
+  .header .menu li a {
     display: block;
     padding: 10px 0;
     text-align: center;
   }
 }
+
+.header .login button {
+  border-radius: 5px;
+  background-color: aqua;
+  padding: 3px 5px;
+}
+
 
 .market-panel button.active {
   color: #fff;
@@ -54,13 +61,13 @@
   color: #fff;
 }
 
-.tab-control button {
+.order-panel .tab-control button {
   border-bottom: white solid 1px;
   margin: auto 2px;
   padding: auto 12px;
 }
 
-.switch-control {
+.order-panel .switch-control {
   display: flex;
   background: #374151;
   border-radius: 9999px;
@@ -69,7 +76,7 @@
   padding: 2px;
 }
 
-.switch-control button {
+.order-panel .switch-control button {
   border-radius: 9999px;
   padding: 8px 16px;
   border: none;
@@ -78,7 +85,7 @@
   transition: all 0.3s ease;
 }
 
-.switch-control button.active {
+.order-panel .switch-control button.active {
   background: #4B5563;
   color: white;
 }
@@ -124,6 +131,19 @@
 
 .order-panel .range .percent input {
   width: 50px;
+}
+
+.order-panel .order {
+  padding: 3px;
+  position: absolute;
+  top: 460px;
+}
+
+.order-panel .order button {
+  border-radius: 5px;
+  margin: 3px;
+  width:290px;
+  background-color: aqua;
 }
 
 .tool-panel {
