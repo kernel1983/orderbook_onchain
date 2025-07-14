@@ -104,7 +104,7 @@
 
 .order-panel input[type=text] {
   background-color: transparent;
-  width: 100px;
+  width: 100%;
   outline: none;
 }
 

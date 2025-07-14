@@ -38,7 +38,7 @@ class Header extends React.Component {
       rc('div', { className: 'login' },
         this.state.ethAddress ?
         rc('span', { className: 'font-mono' }, `${this.state.ethAddress.substring(0, 6)}...${this.state.ethAddress.substring(this.state.ethAddress.length - 4)}`) :
-        rc('button', { onClick: this.handleMetamaskLogin, className: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' }, 'Login with MetaMask')
+        rc('button', { onClick: this.handleMetamaskLogin, className: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' }, 'Connect Wallet')
       )
     );
   }
@@ -260,8 +260,40 @@ class OrderPanel extends React.Component {
     this.state = {
       activeTab: 'Limit',
       tradeType: 'Buy',
-      rangeValue: '0'
+      price: '68000',
+      size: '',
+      rangeValue: '0',
+      sizeUnit: 'BTC', // BTC or USDC
+      balance: {
+          BTC: 1.2345,
+          USDC: 5000.00
+      }
     };
+  }
+
+  handleInputChange = (e) => {
+      const { name, value } = e.target;
+      this.setState({ [name]: value });
+  }
+
+  handleRangeChange = (e) => {
+      const percentage = e.target.value;
+      const { tradeType, balance, price, sizeUnit } = this.state;
+      let newSize = '';
+
+      if (tradeType === 'Buy') {
+          const budget = balance.USDC * (percentage / 100);
+          if (price > 0) {
+              newSize = sizeUnit === 'BTC' ? (budget / price).toFixed(6) : budget.toFixed(2);
+          }
+      } else { // Sell
+          const amount = balance.BTC * (percentage / 100);
+          if (price > 0) {
+              newSize = sizeUnit === 'BTC' ? amount.toFixed(6) : (amount * price).toFixed(2);
+          }
+      }
+
+      this.setState({ rangeValue: percentage, size: newSize });
   }
 
   handleTabChange = (tab) => {
@@ -269,8 +301,12 @@ class OrderPanel extends React.Component {
   };
 
   handleTradeTypeChange = (type) => {
-    this.setState({ tradeType: type });
+    this.setState({ tradeType: type, size: '', rangeValue: '0' });
   };
+
+  handleSizeUnitChange = () => {
+      this.setState(prevState => ({ sizeUnit: prevState.sizeUnit === 'BTC' ? 'USDC' : 'BTC', size: '' }));
+  }
 
   placeOrder = () => {
     alert(`Placing ${this.state.tradeType} ${this.state.activeTab} order.`);
@@ -278,6 +314,15 @@ class OrderPanel extends React.Component {
 
   render() {
     const tradeTypeClass = this.state.tradeType === 'Buy' ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700';
+    const balanceToShow = this.state.tradeType === 'Buy' ? `${this.state.balance.USDC.toFixed(2)} USDC` : `${this.state.balance.BTC.toFixed(4)} BTC`;
+    let total = 0;
+    if(this.state.price > 0 && this.state.size > 0) {
+        if(this.state.sizeUnit === 'BTC') {
+            total = this.state.price * this.state.size;
+        } else {
+            total = parseFloat(this.state.size);
+        }
+    }
 
     return rc('div', { className: 'order-panel bg-gray-900 p-4 rounded-lg text-white', style: { minWidth: '300px', height: '100%' } },
       rc('div', { className: 'flex border-b border-gray-700' },
@@ -288,7 +333,11 @@ class OrderPanel extends React.Component {
         rc('button', { className: `flex-1 py-2 ${this.state.tradeType === 'Buy' ? 'bg-green-600' : 'bg-gray-700'}`, onClick: () => this.handleTradeTypeChange('Buy') }, 'Buy'),
         rc('button', { className: `flex-1 py-2 ${this.state.tradeType === 'Sell' ? 'bg-red-600' : 'bg-gray-700'}`, onClick: () => this.handleTradeTypeChange('Sell') }, 'Sell')
       ),
-      rc('div', { className: 'mt-4' },
+      rc('div', { className: 'mt-4 space-y-4' },
+        rc('div', { className: 'flex justify-between text-sm'},
+            rc('span', { className: 'text-gray-400' }, 'Available:'),
+            rc('span', { className: 'font-mono' }, balanceToShow)
+        ),
         this.state.activeTab === 'Market' && rc('div', { className: 'market-tab space-y-4' },
             rc('div', null,
                 rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
@@ -298,16 +347,19 @@ class OrderPanel extends React.Component {
         this.state.activeTab === 'Limit' && rc('div', { className: 'limit-tab space-y-4' },
             rc('div', null,
                 rc('label', { className: 'block text-sm text-gray-400' }, 'Price'),
-                rc('input', { type: 'text', placeholder: 'Enter price', className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+                rc('input', { type: 'text', name: 'price', value: this.state.price, onChange: this.handleInputChange, className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
             ),
             rc('div', null,
-                rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
-                rc('input', { type: 'text', placeholder: 'Enter size', className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+                rc('div', { className: 'flex justify-between'},
+                    rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
+                    rc('button', { onClick: this.handleSizeUnitChange, className: 'text-sm text-blue-400 hover:text-blue-300' }, `in ${this.state.sizeUnit}`)
+                ),
+                rc('input', { type: 'text', name: 'size', value: this.state.size, onChange: this.handleInputChange, placeholder: `Enter size in ${this.state.sizeUnit}` , className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
             ),
             rc('div', { className: 'range' },
                 rc('input', {
                     type: 'range', min: '0', max: '100', value: this.state.rangeValue,
-                    onChange: (e) => this.setState({ rangeValue: e.target.value }),
+                    onChange: this.handleRangeChange,
                     className: 'w-full'
                 }),
                 rc('div', { className: 'flex justify-between text-xs text-gray-400' },
@@ -317,6 +369,10 @@ class OrderPanel extends React.Component {
                     rc('span', null, '75%'),
                     rc('span', null, '100%')
                 )
+            ),
+            rc('div', { className: 'flex justify-between text-sm'},
+                rc('span', { className: 'text-gray-400' }, 'Total:'),
+                rc('span', { className: 'font-mono' }, `${total.toFixed(2)} USDC`)
             )
         ),
         rc('button', { className: `w-full mt-4 py-2 rounded text-white font-bold ${tradeTypeClass}`, onClick: this.placeOrder }, `Place ${this.state.tradeType} Order`)
