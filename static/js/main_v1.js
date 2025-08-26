@@ -38,7 +38,7 @@ class Header extends React.Component {
       rc('div', { className: 'login' },
         this.state.ethAddress ?
         rc('span', { className: 'font-mono' }, `${this.state.ethAddress.substring(0, 6)}...${this.state.ethAddress.substring(this.state.ethAddress.length - 4)}`) :
-        rc('button', { onClick: this.handleMetamaskLogin, className: 'bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded' }, 'Connect Wallet')
+        rc('button', { onClick: this.handleMetamaskLogin, className: 'bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded' }, 'Connect Wallet')
       )
     );
   }
@@ -58,7 +58,7 @@ class ChartPanel extends React.Component {
         width: chartDiv.offsetWidth,
         height: 400,
         layout: {
-            background: { color: '#000000' },
+            background: { color: 'transparent' },
             textColor: 'rgba(255, 255, 255, 0.9)',
         },
         grid: {
