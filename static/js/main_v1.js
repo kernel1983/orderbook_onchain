@@ -1,6 +1,18 @@
 import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js";
 
 let rc = React.createElement;
+
+const showToast = (message, type = 'info') => {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('toast-visible'));
+  setTimeout(() => {
+    toast.classList.remove('toast-visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+};
 const LightweightCharts = window.LightweightCharts;
 const TESTNET_INDEXER_URL = 'https://testnet3.zentra.dev';
 const BASE_TOKEN = 'BTC';
@@ -132,10 +144,40 @@ class ChartPanel extends React.Component {
       const data = await response.json();
       const candles = data.candles || [];
 
-      if (this.candleSeries && candles.length > 0) {
-        this.candleSeries.setData(candles);
+      if (candles.length > 0) {
+        const intervalSec = {
+          '1s': 1, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400
+        }[interval] || 3600;
+        const now = Math.floor(Date.now() / 1000);
+        const currentBucket = Math.floor(now / intervalSec) * intervalSec;
+        const filled = [candles[0]];
+        for (let i = 1; i < candles.length; i++) {
+          const prev = filled[filled.length - 1];
+          const curr = candles[i];
+          for (let t = prev.time + intervalSec; t < curr.time; t += intervalSec) {
+            filled.push({
+              time: t, open: prev.close, high: prev.close,
+              low: prev.close, close: prev.close, volume: 0, is_filled: true
+            });
+          }
+          curr.open = prev.close;
+          filled.push(curr);
+        }
+        let last = filled[filled.length - 1];
+        for (let t = last.time + intervalSec; t <= currentBucket; t += intervalSec) {
+          filled.push({
+            time: t, open: last.close, high: last.close,
+            low: last.close, close: last.close, volume: 0, is_filled: true
+          });
+          last = filled[filled.length - 1];
+        }
+        if (this.candleSeries) {
+          this.candleSeries.setData(filled);
+        }
+        this.setState({ history: candles, localCandles: filled });
+      } else {
+        this.setState({ history: candles, localCandles: candles });
       }
-      this.setState({ history: candles, localCandles: candles });
     } catch (error) {
       console.error('Failed to load history:', error);
     }
@@ -540,7 +582,7 @@ class OrderPanel extends React.Component {
   placeOrder = async () => {
     const { signer } = this.props;
     if (!signer) {
-      alert('Please connect your wallet first.');
+      showToast('Please connect your wallet first.', 'error');
       return;
     }
 
@@ -557,7 +599,7 @@ class OrderPanel extends React.Component {
 
     if (activeTab === 'Limit') {
       if (!size || isNaN(parseFloat(size)) || parseFloat(price) <= 0) {
-        alert('Please enter a valid size and price');
+        showToast('Please enter a valid size and price', 'error');
         return;
       }
       if (sizeUnit === for_token) {
@@ -582,7 +624,7 @@ class OrderPanel extends React.Component {
 
     } else {
       if (!size || isNaN(parseFloat(size)) || parseFloat(size) <= 0) {
-        alert('Please enter a valid size');
+        showToast('Please enter a valid size', 'error');
         return;
       }
       if (tradeType === 'Buy') {
@@ -617,16 +659,16 @@ class OrderPanel extends React.Component {
         value: 0,
         data: ethers.hexlify(new TextEncoder().encode(JSON.stringify(calldata)))
       });
-      alert(`Transaction sent: ${tx.hash}`);
+      showToast(`Transaction sent: ${tx.hash}`, 'success');
     } catch (error) {
       console.error('Order failed:', error);
-      alert('Order failed.');
+      showToast('Order failed.', 'error');
     }
   };
 
   render() {
     const tradeTypeClass = this.state.tradeType === 'Buy' ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700';
-    const balanceToShow = this.state.tradeType === 'Buy' ? `${this.state.balance.USDC.toFixed(2)} USDC` : `${(this.state.balance.BTC || 0).toFixed(4)} BTC`;
+    const balanceToShow = `${this.state.balance.USDC.toFixed(2)} USDC`;
     let total = 0;
     if (this.state.activeTab === 'Limit') {
       if (this.state.price > 0 && this.state.size > 0) {
@@ -653,6 +695,10 @@ class OrderPanel extends React.Component {
         rc('div', { className: 'flex justify-between text-sm' },
           rc('span', { className: 'text-gray-400' }, 'Available:'),
           rc('span', { className: 'font-mono' }, balanceToShow)
+        ),
+        rc('div', { className: 'flex justify-between text-sm' },
+          rc('span', { className: 'text-gray-400' }, 'Current:'),
+          rc('span', { className: 'font-mono' }, `${(this.state.balance.BTC || 0).toFixed(4)} BTC`)
         ),
         this.state.activeTab === 'Market' && rc('div', { className: 'market-tab space-y-4' },
           rc('div', null,
@@ -828,6 +874,7 @@ class App extends React.Component {
     };
     this.ws = null;
     this.reconnectTimeout = null;
+    this.obFetchTimeout = null;
   }
 
   componentDidMount() {
@@ -845,6 +892,10 @@ class App extends React.Component {
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
     this.teardownStream();
+    if (this.obFetchTimeout) {
+      clearTimeout(this.obFetchTimeout);
+      this.obFetchTimeout = null;
+    }
     if (window.ethereum && window.ethereum.removeListener) {
       window.ethereum.removeListener('accountsChanged', this.initializeWallet);
     }
@@ -852,17 +903,23 @@ class App extends React.Component {
 
   loadInitialMarketData = async () => {
     try {
-      const response = await fetch(`${TESTNET_INDEXER_URL}/api/orderbook?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}`);
-      const data = await response.json();
-      this.setState(
-        {
-          orderbook: { buys: data.buys, sells: data.sells },
-          lastBlock: null
-        },
-        () => this.startStream()
-      );
+      await this.fetchOrderbook();
+      this.startStream();
     } catch (error) {
       console.error('Failed to load market data:', error);
+    }
+  }
+
+  fetchOrderbook = async () => {
+    try {
+      const response = await fetch(`${TESTNET_INDEXER_URL}/api/orderbook?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}`);
+      const data = await response.json();
+      this.setState({
+        orderbook: { buys: data.buys, sells: data.sells },
+        lastBlock: null
+      });
+    } catch (error) {
+      console.error('Failed to fetch orderbook:', error);
     }
   }
 
@@ -892,7 +949,7 @@ class App extends React.Component {
 
   handleWalletLogin = async () => {
     if (typeof window.ethereum === 'undefined') {
-      alert('Wallet not installed!');
+      showToast('Wallet not installed!', 'error');
       return;
     }
 
@@ -963,6 +1020,10 @@ class App extends React.Component {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    if (this.obFetchTimeout) {
+      clearTimeout(this.obFetchTimeout);
+      this.obFetchTimeout = null;
+    }
     if (!this.ws) return;
     this.ws.onopen = null;
     this.ws.onclose = null;
@@ -1012,6 +1073,7 @@ class App extends React.Component {
         trades: [trade, ...prev.trades].slice(0, 200),
         streamTrades: [trade]
       }));
+      this.debouncedFetchOrderbook();
       return;
     }
 
@@ -1026,7 +1088,16 @@ class App extends React.Component {
       if (payload.last_block) {
         this.setState({ lastBlock: payload.last_block });
       }
+      this.debouncedFetchOrderbook();
     }
+  }
+
+  debouncedFetchOrderbook = () => {
+    if (this.obFetchTimeout) clearTimeout(this.obFetchTimeout);
+    this.obFetchTimeout = setTimeout(() => {
+      this.obFetchTimeout = null;
+      this.fetchOrderbook();
+    }, 300);
   }
 
   render() {
