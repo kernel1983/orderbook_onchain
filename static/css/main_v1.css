@@ -1,5 +1,5 @@
 .header {
-  background-color: #000;
+  background-color: rgba(169, 195, 219, 0.1);
   color: #fff;
   display: flex;
   justify-content: space-between;
@@ -47,13 +47,21 @@
 }
 
 
+.market-panel {
+  background-color: rgba(17, 24, 39, 0.7) !important;
+}
+
 .market-panel button.active {
   color: #fff;
 }
 
+.chart-panel {
+  background-color: rgba(231, 231, 231, 0.1);
+}
 
 .order-panel {
   padding-top: 10px;
+  background-color: rgba(231, 231, 231, 0.1);
 }
 
 .order-panel button.active {
@@ -150,4 +158,19 @@
   bottom: 0;
   left: 0;
   width: 100%;
+  background-color: #000;
+}
+
+body {
+    background-color: #000;
+}
+
+#starry-sky {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    display: block;
 }

@@ -1,31 +1,35 @@
 import { ethers } from "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.min.js";
 
 let rc = React.createElement;
+const LightweightCharts = window.LightweightCharts;
+const TESTNET_INDEXER_URL = 'https://testnet3.zentra.dev';
+const BASE_TOKEN = 'BTC';
+const QUOTE_TOKEN = 'USDC';
+
+const parseJsonWithBigInt = (data_json) => JSON.parse(
+  data_json,
+  (key, value, { source }) => (
+    Number.isInteger(value) && !Number.isSafeInteger(value) ? BigInt(source) : value
+  )
+);
+
+const toBigInt = (value) => {
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'string') return BigInt(value);
+  if (typeof value === 'number') return BigInt(String(Math.trunc(value)));
+  return 0n;
+};
 
 class Header extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {};
-  }
-
-  handleMetamaskLogin = async () => {
-    if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask not installed!');
-    } else {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        this.setState({ ethAddress: accounts[0] });
-      } catch (error) {
-        console.error('Error logging in:', error);
-        alert('Login failed.');
-      }
-    }
   }
 
   render() {
-    return rc('header', { className: 'header p-4 flex justify-between items-center bg-gray-800 text-white' },
+    const { ethAddress, walletLoading } = this.props.walletState;
+    return rc('header', { className: 'header p-4 flex items-center bg-gray-800 text-white' },
       rc('div', { className: 'logo flex items-center' },
-        rc('img', { src: 'logo.png', alt: 'Logo', className: 'h-8 w-8 mr-2' }),
+        rc('img', { src: 'logo.svg', alt: 'Logo', className: 'h-8 w-8 mr-2' }),
         rc('span', { className: 'text-xl font-bold' }, 'OrderBook')
       ),
       rc('nav', { className: 'menu' },
@@ -35,134 +39,277 @@ class Header extends React.Component {
           rc('li', null, rc('a', { href: '#', className: 'hover:text-gray-400' }, 'Contact'))
         )
       ),
-      rc('div', { className: 'login' },
-        this.state.ethAddress ?
-        rc('span', { className: 'font-mono' }, `${this.state.ethAddress.substring(0, 6)}...${this.state.ethAddress.substring(this.state.ethAddress.length - 4)}`) :
-        rc('button', { onClick: this.handleMetamaskLogin, className: 'bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded' }, 'Connect Wallet')
+      rc('div', { className: 'login ml-auto flex items-center gap-2' },
+        walletLoading ?
+          null :
+          (ethAddress ?
+            rc('div', { className: 'flex items-center gap-2' },
+              rc('span', { className: 'font-mono text-sm' }, `${ethAddress.substring(0, 6)}...${ethAddress.substring(ethAddress.length - 4)}`),
+              rc('button', { onClick: this.props.handleWalletLogout, className: 'bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm' }, 'Logout')
+            ) :
+            rc('button', { onClick: this.props.handleWalletLogin, className: 'bg-gray-200 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded' }, 'Connect Wallet'))
       )
     );
   }
 }
 
 class ChartPanel extends React.Component {
-  render() {
-    return rc('div', { className: 'chart-panel bg-gray-900 p-4 rounded-lg' },
-      rc('h2', { className: 'text-lg font-bold text-white mb-2' }, 'BTC/USD Chart'),
-      rc('div', { id: 'lightweight-charts', style:{ minHeight:'400px' } })
-    );
+  constructor(props) {
+    super(props);
+    this.state = { history: [], interval: '1s', localCandles: [] };
+    this.chart = null;
+    this.candleSeries = null;
+    this.chartRef = React.createRef();
+    this.timer = null;
   }
 
   componentDidMount() {
-    const chartDiv = document.getElementById('lightweight-charts');
-    const chartOptions = {
-        width: chartDiv.offsetWidth,
-        height: 400,
-        layout: {
-            background: { color: 'transparent' },
-            textColor: 'rgba(255, 255, 255, 0.9)',
-        },
-        grid: {
-            vertLines: { color: '#2d3748' },
-            horzLines: { color: '#2d3748' },
-        },
-        crosshair: {
-            mode: LightweightCharts.CrosshairMode.Normal,
-        },
-        priceScale: {
-            borderColor: '#4a5568',
-        },
-        timeScale: {
-            borderColor: '#4a5568',
-        },
-    };
-
-    this.chart = LightweightCharts.createChart(chartDiv, chartOptions);
-    const candleSeries = this.chart.addCandlestickSeries({
-      upColor: '#48bb78',
-      downColor: '#f56565',
-      borderDownColor: '#f56565',
-      borderUpColor: '#48bb78',
-      wickDownColor: '#f56565',
-      wickUpColor: '#48bb78',
-    });
-
-    // More realistic historical data for BTC/USD
-    const data = [
-        { time: '2023-05-01', open: 29214, high: 29340, low: 28050, close: 28586 },
-        { time: '2023-05-02', open: 28586, high: 28800, low: 28150, close: 28693 },
-        { time: '2023-05-03', open: 28693, high: 29150, low: 28500, close: 29045 },
-        { time: '2023-05-04', open: 29045, high: 29250, low: 28800, close: 28843 },
-        { time: '2023-05-05', open: 28843, high: 29800, low: 28750, close: 29543 },
-        { time: '2023-05-06', open: 29543, high: 29700, low: 28900, close: 28904 },
-        { time: '2023-05-07', open: 28904, high: 29100, low: 28450, close: 28450 },
-        { time: '2023-05-08', open: 28450, high: 28500, low: 27600, close: 27704 },
-        { time: '2023-05-09', open: 27704, high: 27800, low: 27350, close: 27657 },
-        { time: '2023-05-10', open: 27657, high: 28300, low: 27500, close: 27621 },
-        { time: '2023-05-11', open: 27621, high: 27700, low: 26800, close: 27000 },
-        { time: '2023-05-12', open: 27000, high: 27100, low: 25800, close: 26805 },
-        { time: '2023-05-13', open: 26805, high: 27000, low: 26650, close: 26780 },
-        { time: '2023-05-14', open: 26780, high: 27200, low: 26700, close: 26930 },
-        { time: '2023-05-15', open: 26930, high: 27500, low: 26800, close: 27250 },
-        { time: '2023-05-16', open: 27250, high: 27300, low: 26900, close: 27025 },
-        { time: '2023-05-17', open: 27025, high: 27450, low: 26600, close: 27400 },
-        { time: '2023-05-18', open: 27400, high: 27500, low: 26800, close: 26850 },
-        { time: '2023-05-19', open: 26850, high: 27200, low: 26700, close: 26880 },
-        { time: '2023-05-20', open: 26880, high: 27150, low: 26800, close: 27100 },
-        { time: '2023-05-21', open: 27100, high: 27250, low: 26950, close: 27150 },
-        { time: '2023-05-22', open: 27150, high: 27200, low: 26550, close: 26850 },
-        { time: '2023-05-23', open: 26850, high: 27300, low: 26250, close: 26300 },
-        { time: '2023-05-24', open: 26300, high: 26600, low: 26100, close: 26250 },
-        { time: '2023-05-25', open: 26250, high: 26550, low: 25900, close: 26480 },
-        { time: '2023-05-26', open: 26480, high: 26900, low: 26350, close: 26720 },
-        { time: '2023-05-27', open: 26720, high: 26850, low: 26550, close: 26800 },
-        { time: '2023-05-28', open: 26800, high: 28400, low: 26700, close: 28080 },
-        { time: '2023-05-29', open: 28080, high: 28200, low: 27500, close: 27750 },
-        { time: '2023-05-30', open: 27750, high: 28000, low: 27600, close: 27700 },
-        { time: '2023-05-31', open: 27700, high: 27800, low: 26850, close: 27220 },
-        { time: '2023-06-01', open: 27220, high: 27300, low: 26600, close: 26820 },
-        { time: '2023-06-02', open: 26820, high: 27250, low: 26500, close: 27245 },
-        { time: '2023-06-03', open: 27245, high: 27300, low: 27050, close: 27080 },
-        { time: '2023-06-04', open: 27080, high: 27200, low: 26900, close: 27150 },
-        { time: '2023-06-05', open: 27150, high: 27200, low: 25400, close: 25750 },
-        { time: '2023-06-06', open: 25750, high: 27300, low: 25600, close: 27250 },
-        { time: '2023-06-07', open: 27250, high: 27400, low: 26150, close: 26350 },
-        { time: '2023-06-08', open: 26350, high: 26800, low: 26250, close: 26500 },
-        { time: '2023-06-09', open: 26500, high: 26750, low: 26300, close: 26480 },
-        { time: '2023-06-10', open: 26480, high: 26550, low: 25500, close: 25850 },
-        { time: '2023-06-11', open: 25850, high: 26200, low: 25700, close: 25950 },
-        { time: '2023-06-12', open: 25950, high: 26100, low: 25400, close: 25900 },
-        { time: '2023-06-13', open: 25900, high: 26400, low: 25700, close: 25920 },
-        { time: '2023-06-14', open: 25920, high: 26000, low: 24900, close: 25150 },
-        { time: '2023-06-15', open: 25150, high: 25800, low: 24800, close: 25580 },
-        { time: '2023-06-16', open: 25580, high: 26750, low: 25500, close: 26520 },
-        { time: '2023-06-17', open: 26520, high: 26800, low: 26300, close: 26510 },
-        { time: '2023-06-18', open: 26510, high: 26700, low: 26300, close: 26330 },
-        { time: '2023-06-19', open: 26330, high: 27200, low: 26300, close: 26850 },
-        { time: '2023-06-20', open: 26850, high: 28400, low: 26700, close: 28320 },
-        { time: '2023-06-21', open: 28320, high: 30800, low: 28200, close: 30020 },
-        { time: '2023-06-22', open: 30020, high: 30300, low: 29500, close: 29900 },
-        { time: '2023-06-23', open: 29900, high: 31400, low: 29800, close: 30680 },
-        { time: '2023-06-24', open: 30680, high: 30800, low: 30200, close: 30550 },
-        { time: '2023-06-25', open: 30550, high: 31000, low: 30300, close: 30480 },
-        { time: '2023-06-26', open: 30480, high: 30700, low: 30000, close: 30270 },
-        { time: '2023-06-27', open: 30270, high: 31000, low: 30200, close: 30690 },
-        { time: '2023-06-28', open: 30690, high: 30750, low: 30050, close: 30080 },
-        { time: '2023-06-29', open: 30080, high: 31250, low: 30000, close: 30450 },
-        { time: '2023-06-30', open: 30450, high: 31300, low: 29300, close: 30480 },
-    ];
-    candleSeries.setData(data);
-    this.chart.timeScale().fitContent();
-    window.addEventListener('resize', this.handleResize);
+    this.initChart();
+    this.loadHistory();
+    this.startAutoRefresh();
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize);
+    if (this.timer) clearInterval(this.timer);
   }
 
-  handleResize = () => {
-    const chartDiv = document.getElementById('lightweight-charts');
-    let chartWidth = chartDiv.offsetWidth;
-    this.chart.resize(chartWidth, 400);
+  startAutoRefresh = () => {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      const { localCandles, interval } = this.state;
+      if (!localCandles.length) return;
+
+      const intervalSec = {
+        '1s': 1, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400
+      }[interval] || 3600;
+
+      const now = Math.floor(Date.now() / 1000);
+      const bucket = Math.floor(now / intervalSec) * intervalSec;
+      const lastCandle = localCandles[localCandles.length - 1];
+
+      if (bucket > lastCandle.time) {
+        const newCandle = {
+          time: bucket,
+          open: lastCandle.close,
+          high: lastCandle.close,
+          low: lastCandle.close,
+          close: lastCandle.close,
+          volume: 0,
+          is_filled: true
+        };
+        const newCandles = [...localCandles, newCandle];
+        this.setState({ localCandles: newCandles });
+        if (this.candleSeries) {
+          this.candleSeries.setData(newCandles);
+        }
+      }
+    }, 1000);
+  }
+
+  initChart() {
+    if (!this.chartRef.current) return;
+    this.chart = LightweightCharts.createChart(this.chartRef.current, {
+      width: this.chartRef.current.offsetWidth || 600,
+      height: 300,
+      layout: { background: { color: 'transparent' }, textColor: '#d1d4dc' },
+      grid: { vertLines: { color: '#2d3748' }, horzLines: { color: '#2d3748' } },
+      timeScale: {
+        tickMarkFormatter: (time) => {
+          return `b${time}`;
+        },
+      },
+    });
+    this.candleSeries = this.chart.addCandlestickSeries({
+      upColor: '#22c55e', downColor: '#ef4444', borderDownColor: '#ef4444', borderUpColor: '#22c55e',
+      wickDownColor: '#ef4444', wickUpColor: '#22c55e',
+    });
+  }
+
+  loadHistory = async () => {
+    const { interval } = this.state;
+    try {
+      const response = await fetch(`${TESTNET_INDEXER_URL}/api/history?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}&interval=${interval}`);
+      const data = await response.json();
+      const candles = data.candles || [];
+
+      if (this.candleSeries && candles.length > 0) {
+        this.candleSeries.setData(candles);
+      }
+      this.setState({ history: candles, localCandles: candles });
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  }
+
+  handleIntervalChange = (interval) => {
+    this.setState({ interval }, () => {
+      this.loadHistory();
+    });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.interval !== prevState.interval) {
+      this.loadHistory();
+    }
+    if (this.props.streamTrades !== prevProps.streamTrades && this.props.streamTrades) {
+      this.updateCandlesWithTrades(this.props.streamTrades);
+    }
+  }
+
+  updateCandlesWithTrades = (trades) => {
+    const { interval } = this.state;
+    const intervalSec = {
+      '1s': 1, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400
+    }[interval] || 3600;
+
+    let { localCandles } = this.state;
+
+    if (!this.candleSeries) {
+      console.error('candleSeries is null!');
+      return;
+    }
+
+    const MAX_CANDLES = { '1s': 300, '1m': 300, '5m': 300, '15m': 300, '1h': 200, '1d': 100 }[interval] || 300;
+
+    let updatedIdx = -1;
+
+    for (const trade of trades) {
+      const tradeTime = trade.timestamp || Math.floor(Date.now() / 1000);
+      const bucket = Math.floor(tradeTime / intervalSec) * intervalSec;
+
+      if (!localCandles.length) {
+        const firstCandle = {
+          time: bucket,
+          open: trade.price,
+          high: trade.price,
+          low: trade.price,
+          close: trade.price,
+          volume: (trade.amount || 0),
+          is_filled: false
+        };
+        localCandles = [firstCandle];
+        continue;
+      }
+
+      let foundIdx = -1;
+      for (let i = localCandles.length - 1; i >= 0; i--) {
+        if (localCandles[i].time === bucket) {
+          foundIdx = i;
+          break;
+        }
+        if (localCandles[i].time < bucket) break;
+      }
+
+      if (foundIdx >= 0) {
+        const oldC = localCandles[foundIdx];
+        localCandles[foundIdx] = {
+          ...oldC,
+          high: Math.max(oldC.high, trade.price),
+          low: Math.min(oldC.low, trade.price),
+          close: trade.price,
+          volume: (oldC.volume || 0) + (trade.amount || 0),
+          is_filled: false
+        };
+        updatedIdx = foundIdx;
+
+      } else if (bucket > localCandles[localCandles.length - 1].time) {
+        const newC = {
+          time: bucket,
+          open: trade.price,
+          high: trade.price,
+          low: trade.price,
+          close: trade.price,
+          volume: (trade.amount || 0),
+          is_filled: false
+        };
+        localCandles = [...localCandles, newC];
+        updatedIdx = localCandles.length - 1;
+
+      } else if (bucket < localCandles[0].time) {
+        const newC = {
+          time: bucket,
+          open: trade.price,
+          high: trade.price,
+          low: trade.price,
+          close: trade.price,
+          volume: (trade.amount || 0),
+          is_filled: false
+        };
+        localCandles = [newC, ...localCandles];
+        updatedIdx = 0;
+
+      } else {
+        let insertIdx = localCandles.length;
+        for (let i = 0; i < localCandles.length; i++) {
+          if (localCandles[i].time > bucket) {
+            insertIdx = i;
+            break;
+          }
+        }
+        const newC = {
+          time: bucket,
+          open: trade.price,
+          high: trade.price,
+          low: trade.price,
+          close: trade.price,
+          volume: (trade.amount || 0),
+          is_filled: false
+        };
+        localCandles = [
+          ...localCandles.slice(0, insertIdx),
+          newC,
+          ...localCandles.slice(insertIdx)
+        ];
+        updatedIdx = insertIdx;
+      }
+    }
+
+    if (localCandles.length > MAX_CANDLES) {
+      localCandles = localCandles.slice(-MAX_CANDLES);
+    }
+
+    if (localCandles.length > 1) {
+      for (let i = 1; i < localCandles.length; i++) {
+        localCandles[i].open = localCandles[i-1].close;
+      }
+    }
+
+    if (updatedIdx >= 0) {
+      for (let i = updatedIdx + 1; i < localCandles.length; i++) {
+        if (localCandles[i].is_filled) {
+          localCandles[i].open = localCandles[i-1].close;
+          localCandles[i].close = localCandles[i-1].close;
+          localCandles[i].high = localCandles[i-1].close;
+          localCandles[i].low = localCandles[i-1].close;
+        }
+        if (!localCandles[i].is_filled) {
+          break;
+        }
+      }
+    }
+
+    this.candleSeries.setData(localCandles);
+    this.setState({ localCandles });
+  }
+
+  render() {
+    const { history, interval } = this.state;
+    const intervals = ['1s', '1m', '5m', '15m', '1h', '1d'];
+    return rc('div', { className: 'chart-panel bg-gray-900 p-4 rounded-lg' },
+      rc('div', { className: 'flex justify-between items-center mb-2' },
+        rc('h2', { className: 'text-lg font-bold text-white' }, `Market Chart (${history.length} trades)`),
+        rc('div', { className: 'flex gap-1' },
+          intervals.map(iv =>
+            rc('button', {
+              key: iv,
+              onClick: () => this.handleIntervalChange(iv),
+              className: `px-2 py-1 text-xs rounded ${interval === iv ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`
+            }, iv)
+          )
+        )
+      ),
+      rc('div', { ref: this.chartRef, className: 'w-full' })
+    );
   }
 }
 
@@ -172,23 +319,33 @@ class MarketPanel extends React.Component {
     this.state = {
       activeTab: 'Order Book',
       orderBook: {
-        bids: [
-          { price: 68000, size: 0.5, total: 0.5 },
-          { price: 67999, size: 1.2, total: 1.7 },
-          { price: 67998, size: 0.8, total: 2.5 },
-        ],
-        asks: [
-          { price: 68001, size: 0.3, total: 0.3 },
-          { price: 68002, size: 0.9, total: 1.2 },
-          { price: 68003, size: 1.5, total: 2.7 },
-        ]
+        bids: [],
+        asks: []
       },
-      trades: [
-        { price: 68001, size: 0.1, time: '10:30:05' },
-        { price: 68000, size: 0.2, time: '10:30:01' },
-        { price: 68002, size: 0.05, time: '10:29:55' },
-      ]
     };
+  }
+
+  componentDidMount() {
+    this.applyOrderbookFromProps(this.props.orderbook);
+  }
+
+  componentWillUnmount() {
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.orderbook !== prevProps.orderbook) {
+      this.applyOrderbookFromProps(this.props.orderbook);
+    }
+  }
+
+  applyOrderbookFromProps = (orderbook) => {
+    if (!orderbook) return;
+    this.setState({
+      orderBook: {
+        bids: orderbook.buys || orderbook.bids || [],
+        asks: orderbook.sells || orderbook.asks || []
+      }
+    });
   }
 
   handleTabChange = (tab) => {
@@ -196,49 +353,57 @@ class MarketPanel extends React.Component {
   };
 
   renderOrderBook() {
-      return rc('div', { className: 'order-book text-white' },
-          rc('div', { className: 'flex justify-between text-xs text-gray-400 p-2' },
-              rc('span', null, 'Price (USD)'),
-              rc('span', null, 'Size (BTC)'),
-              rc('span', null, 'Total')
-          ),
-          rc('div', { className: 'asks' },
-              this.state.orderBook.asks.map((ask, index) =>
-                  rc('div', { key: index, className: 'flex justify-between p-1 text-red-500' },
-                      rc('span', null, ask.price.toFixed(2)),
-                      rc('span', null, ask.size.toFixed(4)),
-                      rc('span', null, ask.total.toFixed(4))
-                  )
-              )
-          ),
-          rc('div', { className: 'current-price p-2 text-lg font-bold text-center' }, '68000.50'),
-          rc('div', { className: 'bids' },
-              this.state.orderBook.bids.map((bid, index) =>
-                  rc('div', { key: index, className: 'flex justify-between p-1 text-green-500' },
-                      rc('span', null, bid.price.toFixed(2)),
-                      rc('span', null, bid.size.toFixed(4)),
-                      rc('span', null, bid.total.toFixed(4))
-                  )
-              )
+    const { bids, asks } = this.state.orderBook;
+    return rc('div', { className: 'order-book text-white' },
+      rc('div', { className: 'flex justify-between text-xs text-gray-400 p-2' },
+        rc('span', null, 'Price (USDC)'),
+        rc('span', null, `Size (${BASE_TOKEN})`),
+      ),
+      rc('div', { className: 'asks' },
+        asks.slice(0, 10).reverse().map((ask, index) =>
+          rc('div', { key: index, className: 'flex justify-between p-1 text-red-500' },
+            rc('span', null, ethers.formatUnits(toBigInt(ask.price), 6)),
+            rc('span', null, ethers.formatUnits(-toBigInt(ask.base), 18).substring(0, 8)),
           )
-      );
+        )
+      ),
+      rc('div', { className: 'current-price p-2 text-lg font-bold text-center' }, bids.length > 0 ? ethers.formatUnits(toBigInt(bids[0].price), 6) : (asks.length > 0 ? ethers.formatUnits(toBigInt(asks[0].price), 6) : '-')),
+      rc('div', { className: 'bids' },
+        bids.slice(0, 10).map((bid, index) =>
+          rc('div', { key: index, className: 'flex justify-between p-1 text-green-500' },
+            rc('span', null, ethers.formatUnits(toBigInt(bid.price), 6)),
+            rc('span', null, ethers.formatUnits(toBigInt(bid.base), 18).substring(0, 8)),
+          )
+        )
+      )
+    );
   }
 
   renderTrades() {
-      return rc('div', { className: 'trades text-white' },
-          rc('div', { className: 'flex justify-between text-xs text-gray-400 p-2' },
-              rc('span', null, 'Price (USD)'),
-              rc('span', null, 'Size (BTC)'),
-              rc('span', null, 'Time')
-          ),
-          this.state.trades.map((trade, index) =>
-              rc('div', { key: index, className: `flex justify-between p-1 ${trade.price > 68000 ? 'text-green-500' : 'text-red-500'}` },
-                  rc('span', null, trade.price.toFixed(2)),
-                  rc('span', null, trade.size.toFixed(4)),
-                  rc('span', null, trade.time)
-              )
-          )
-      );
+    const { trades } = this.props;
+    if (!Array.isArray(trades) || trades.length === 0) {
+      return rc('div', { className: 'trades text-white text-center p-4' }, 'No recent trades.');
+    }
+
+    return rc('div', { className: 'trades text-white', style: { maxHeight: '400px', overflowY: 'auto' } },
+      rc('div', { className: 'flex justify-between text-xs text-gray-400 p-2 sticky top-0 bg-gray-900' },
+        rc('span', { className: 'w-1/3' }, 'Time'),
+        rc('span', { className: 'w-1/3 text-right' }, 'Price (USDC)'),
+        rc('span', { className: 'w-1/3 text-right' }, `Size (${BASE_TOKEN})`),
+      ),
+      rc('div', { className: 'trade-list' },
+        trades.map((trade, index) => {
+          const price = Number(trade.price) || 0;
+          const amount = Number(trade.amount || trade.base_amount) || 0;
+          const timeStr = trade.timestamp ? new Date(trade.timestamp * 1000).toLocaleTimeString() : '-';
+          return rc('div', { key: index, className: `flex justify-between p-1 ${trade.side === 'buy' ? 'text-green-500' : 'text-red-500'}` },
+            rc('span', { className: 'w-1/3 font-mono' }, timeStr),
+            rc('span', { className: 'w-1/3 text-right font-mono' }, price > 0 ? price.toFixed(2) : '-'),
+            rc('span', { className: 'w-1/3 text-right font-mono' }, amount > 0 ? amount.toFixed(6) : '-'),
+          );
+        })
+      )
+    );
   }
 
   render() {
@@ -263,37 +428,100 @@ class OrderPanel extends React.Component {
       price: '68000',
       size: '',
       rangeValue: '0',
-      sizeUnit: 'BTC', // BTC or USDC
+      sizeUnit: 'BTC',
       balance: {
-          BTC: 1.2345,
-          USDC: 5000.00
+        BTC: 0,
+        USDC: 0
       }
     };
+    this.balanceInterval = null;
+  }
+
+  componentDidMount() {
+    this.fetchBalances();
+    this.balanceInterval = setInterval(this.fetchBalances, 2000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.balanceInterval);
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.signer !== prevProps.signer) {
+      this.fetchBalances();
+    }
+  }
+
+  fetchBalances = async () => {
+    const { signer } = this.props;
+    if (!signer) {
+      return;
+    }
+    const address = await signer.getAddress();
+
+    const tokens = ['USDC', 'BTC'];
+    const decimals = { 'USDC': 6, 'BTC': 18 };
+
+    tokens.forEach(async (token) => {
+      if (!token || !decimals[token]) return;
+      try {
+        const prefix = `base-${token}-balance:${address.toLowerCase()}`;
+        const response = await fetch(`${TESTNET_INDEXER_URL}/api/get_latest_state?prefix=${prefix}`);
+        const data_json = await response.text();
+        const data = parseJsonWithBigInt(data_json);
+        const formattedBalance = ethers.formatUnits(BigInt(data.result || 0), decimals[token] || 18);
+        this.setState(prevState => ({
+          balance: {
+            ...prevState.balance,
+            [token]: parseFloat(formattedBalance)
+          }
+        }));
+      } catch (error) {
+        console.error(`Failed to fetch ${token} balance:`, error);
+      }
+    });
   }
 
   handleInputChange = (e) => {
-      const { name, value } = e.target;
-      this.setState({ [name]: value });
+    const { name, value } = e.target;
+    this.setState({ [name]: value });
   }
 
   handleRangeChange = (e) => {
-      const percentage = e.target.value;
-      const { tradeType, balance, price, sizeUnit } = this.state;
-      let newSize = '';
+    const percentage = e.target.value;
+    const { tradeType, balance, price, sizeUnit, activeTab } = this.state;
+    const for_token = 'BTC';
+    let newSize = '';
 
+    if (activeTab === 'Market') {
       if (tradeType === 'Buy') {
-          const budget = balance.USDC * (percentage / 100);
-          if (price > 0) {
-              newSize = sizeUnit === 'BTC' ? (budget / price).toFixed(6) : budget.toFixed(2);
-          }
-      } else { // Sell
-          const amount = balance.BTC * (percentage / 100);
-          if (price > 0) {
-              newSize = sizeUnit === 'BTC' ? amount.toFixed(6) : (amount * price).toFixed(2);
-          }
+        if (sizeUnit === for_token) {
+          newSize = (balance.USDC / (price || 1) * (percentage / 100)).toFixed(6);
+        } else {
+          newSize = (balance.USDC * (percentage / 100)).toFixed(2);
+        }
+      } else {
+        if (sizeUnit === for_token) {
+          newSize = (balance[for_token] * (percentage / 100)).toFixed(6);
+        } else {
+          newSize = (balance[for_token] * (price || 1) * (percentage / 100)).toFixed(2);
+        }
       }
+    } else {
+      if (tradeType === 'Buy') {
+        const budget = balance.USDC * (percentage / 100);
+        if (price > 0) {
+          newSize = sizeUnit === for_token ? (budget / price).toFixed(6) : budget.toFixed(2);
+        }
+      } else {
+        const amount = balance[for_token] * (percentage / 100);
+        if (price > 0) {
+          newSize = sizeUnit === for_token ? amount.toFixed(6) : (amount * price).toFixed(2);
+        }
+      }
+    }
 
-      this.setState({ rangeValue: percentage, size: newSize });
+    this.setState({ rangeValue: percentage, size: newSize });
   }
 
   handleTabChange = (tab) => {
@@ -305,23 +533,111 @@ class OrderPanel extends React.Component {
   };
 
   handleSizeUnitChange = () => {
-      this.setState(prevState => ({ sizeUnit: prevState.sizeUnit === 'BTC' ? 'USDC' : 'BTC', size: '' }));
+    const for_token = 'BTC';
+    this.setState(prevState => ({ sizeUnit: prevState.sizeUnit === for_token ? 'USDC' : for_token, size: '' }));
   }
 
-  placeOrder = () => {
-    alert(`Placing ${this.state.tradeType} ${this.state.activeTab} order.`);
+  placeOrder = async () => {
+    const { signer } = this.props;
+    if (!signer) {
+      alert('Please connect your wallet first.');
+      return;
+    }
+
+    const { activeTab, tradeType, price, size, sizeUnit } = this.state;
+    const for_token = 'BTC';
+    const quote_token = 'USDC';
+    const ZEN_ADDR = '0x00000000000000000000000000000000007a656e';
+    const base_decimals = 18;
+    const quote_decimals = 6;
+
+    let calldata;
+    let base_amount;
+    let quote_amount;
+
+    if (activeTab === 'Limit') {
+      if (!size || isNaN(parseFloat(size)) || parseFloat(price) <= 0) {
+        alert('Please enter a valid size and price');
+        return;
+      }
+      if (sizeUnit === for_token) {
+        base_amount = ethers.parseUnits(size, base_decimals);
+        quote_amount = ethers.parseUnits((parseFloat(size) * parseFloat(price)).toString(), quote_decimals);
+      } else {
+        quote_amount = ethers.parseUnits(size, quote_decimals);
+        base_amount = ethers.parseUnits((parseFloat(size) / parseFloat(price)).toString(), base_decimals);
+      }
+
+      if (tradeType === 'Buy') {
+        quote_amount = -quote_amount;
+      } else {
+        base_amount = -base_amount;
+      }
+
+      calldata = {
+        'p': 'zentest3',
+        'f': 'trade_limit_order',
+        'a': [for_token, base_amount.toString(), quote_token, quote_amount.toString()]
+      };
+
+    } else {
+      if (!size || isNaN(parseFloat(size)) || parseFloat(size) <= 0) {
+        alert('Please enter a valid size');
+        return;
+      }
+      if (tradeType === 'Buy') {
+        if (sizeUnit === for_token) {
+          base_amount = ethers.parseUnits(size, base_decimals);
+          quote_amount = null;
+        } else {
+          quote_amount = -ethers.parseUnits(size, quote_decimals);
+          base_amount = null;
+        }
+      } else {
+        if (sizeUnit === for_token) {
+          base_amount = -ethers.parseUnits(size, base_decimals);
+          quote_amount = null;
+        } else {
+          quote_amount = ethers.parseUnits(size, quote_decimals);
+          base_amount = null;
+        }
+      }
+
+      calldata = {
+        'p': 'zentest3',
+        'f': 'trade_market_order',
+        'a': [for_token, base_amount ? base_amount.toString() : null, quote_token, quote_amount ? quote_amount.toString() : null]
+      };
+    }
+
+    try {
+      console.log('calldata', calldata);
+      const tx = await signer.sendTransaction({
+        to: ZEN_ADDR,
+        value: 0,
+        data: ethers.hexlify(new TextEncoder().encode(JSON.stringify(calldata)))
+      });
+      alert(`Transaction sent: ${tx.hash}`);
+    } catch (error) {
+      console.error('Order failed:', error);
+      alert('Order failed.');
+    }
   };
 
   render() {
     const tradeTypeClass = this.state.tradeType === 'Buy' ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700';
-    const balanceToShow = this.state.tradeType === 'Buy' ? `${this.state.balance.USDC.toFixed(2)} USDC` : `${this.state.balance.BTC.toFixed(4)} BTC`;
+    const balanceToShow = this.state.tradeType === 'Buy' ? `${this.state.balance.USDC.toFixed(2)} USDC` : `${(this.state.balance.BTC || 0).toFixed(4)} BTC`;
     let total = 0;
-    if(this.state.price > 0 && this.state.size > 0) {
-        if(this.state.sizeUnit === 'BTC') {
-            total = this.state.price * this.state.size;
+    if (this.state.activeTab === 'Limit') {
+      if (this.state.price > 0 && this.state.size > 0) {
+        if (this.state.sizeUnit === 'BTC') {
+          total = this.state.price * this.state.size;
         } else {
-            total = parseFloat(this.state.size);
+          total = parseFloat(this.state.size);
         }
+      }
+    } else {
+      total = parseFloat(this.state.size) || 0;
     }
 
     return rc('div', { className: 'order-panel bg-gray-900 p-4 rounded-lg text-white', style: { minWidth: '300px', height: '100%' } },
@@ -329,51 +645,54 @@ class OrderPanel extends React.Component {
         rc('button', { className: `px-4 py-2 ${this.state.activeTab === 'Market' ? 'border-b-2 border-blue-500' : ''}`, onClick: () => this.handleTabChange('Market') }, 'Market'),
         rc('button', { className: `px-4 py-2 ${this.state.activeTab === 'Limit' ? 'border-b-2 border-blue-500' : ''}`, onClick: () => this.handleTabChange('Limit') }, 'Limit')
       ),
-      rc('div', { className: 'flex mt-4' },
+      rc('div', { className: 'flex mt-4 gap-2' },
         rc('button', { className: `flex-1 py-2 ${this.state.tradeType === 'Buy' ? 'bg-green-600' : 'bg-gray-700'}`, onClick: () => this.handleTradeTypeChange('Buy') }, 'Buy'),
         rc('button', { className: `flex-1 py-2 ${this.state.tradeType === 'Sell' ? 'bg-red-600' : 'bg-gray-700'}`, onClick: () => this.handleTradeTypeChange('Sell') }, 'Sell')
       ),
       rc('div', { className: 'mt-4 space-y-4' },
-        rc('div', { className: 'flex justify-between text-sm'},
-            rc('span', { className: 'text-gray-400' }, 'Available:'),
-            rc('span', { className: 'font-mono' }, balanceToShow)
+        rc('div', { className: 'flex justify-between text-sm' },
+          rc('span', { className: 'text-gray-400' }, 'Available:'),
+          rc('span', { className: 'font-mono' }, balanceToShow)
         ),
         this.state.activeTab === 'Market' && rc('div', { className: 'market-tab space-y-4' },
-            rc('div', null,
-                rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
-                rc('input', { type: 'text', placeholder: 'Enter size', className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
-            )
+          rc('div', null,
+            rc('div', { className: 'flex justify-between items-center' },
+              rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
+              rc('button', { onClick: this.handleSizeUnitChange, className: 'text-sm text-blue-400 hover:text-blue-300' }, `in ${this.state.sizeUnit}`)
+            ),
+            rc('input', { type: 'text', name: 'size', value: this.state.size, onChange: this.handleInputChange, placeholder: `Enter size in ${this.state.sizeUnit}`, className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+          )
         ),
         this.state.activeTab === 'Limit' && rc('div', { className: 'limit-tab space-y-4' },
-            rc('div', null,
-                rc('label', { className: 'block text-sm text-gray-400' }, 'Price'),
-                rc('input', { type: 'text', name: 'price', value: this.state.price, onChange: this.handleInputChange, className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+          rc('div', null,
+            rc('label', { className: 'block text-sm text-gray-400' }, 'Price'),
+            rc('input', { type: 'text', name: 'price', value: this.state.price, onChange: this.handleInputChange, className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+          ),
+          rc('div', null,
+            rc('div', { className: 'flex justify-between' },
+              rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
+              rc('button', { onClick: this.handleSizeUnitChange, className: 'text-sm text-blue-400 hover:text-blue-300' }, `in ${this.state.sizeUnit}`)
             ),
-            rc('div', null,
-                rc('div', { className: 'flex justify-between'},
-                    rc('label', { className: 'block text-sm text-gray-400' }, 'Size'),
-                    rc('button', { onClick: this.handleSizeUnitChange, className: 'text-sm text-blue-400 hover:text-blue-300' }, `in ${this.state.sizeUnit}`)
-                ),
-                rc('input', { type: 'text', name: 'size', value: this.state.size, onChange: this.handleInputChange, placeholder: `Enter size in ${this.state.sizeUnit}` , className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
-            ),
-            rc('div', { className: 'range' },
-                rc('input', {
-                    type: 'range', min: '0', max: '100', value: this.state.rangeValue,
-                    onChange: this.handleRangeChange,
-                    className: 'w-full'
-                }),
-                rc('div', { className: 'flex justify-between text-xs text-gray-400' },
-                    rc('span', null, '0%'),
-                    rc('span', null, '25%'),
-                    rc('span', null, '50%'),
-                    rc('span', null, '75%'),
-                    rc('span', null, '100%')
-                )
-            ),
-            rc('div', { className: 'flex justify-between text-sm'},
-                rc('span', { className: 'text-gray-400' }, 'Total:'),
-                rc('span', { className: 'font-mono' }, `${total.toFixed(2)} USDC`)
+            rc('input', { type: 'text', name: 'size', value: this.state.size, onChange: this.handleInputChange, placeholder: `Enter size in ${this.state.sizeUnit}`, className: 'w-full p-2 bg-gray-800 border border-gray-700 rounded' })
+          ),
+          rc('div', { className: 'range' },
+            rc('input', {
+              type: 'range', min: '0', max: '100', value: this.state.rangeValue,
+              onChange: this.handleRangeChange,
+              className: 'w-full'
+            }),
+            rc('div', { className: 'flex justify-between text-xs text-gray-400' },
+              rc('span', null, '0%'),
+              rc('span', null, '25%'),
+              rc('span', null, '50%'),
+              rc('span', null, '75%'),
+              rc('span', null, '100%')
             )
+          ),
+          rc('div', { className: 'flex justify-between text-sm' },
+            rc('span', { className: 'text-gray-400' }, 'Total:'),
+            rc('span', { className: 'font-mono' }, `${total.toFixed(2)} USDC`)
+          )
         ),
         rc('button', { className: `w-full mt-4 py-2 rounded text-white font-bold ${tradeTypeClass}`, onClick: this.placeOrder }, `Place ${this.state.tradeType} Order`)
       )
@@ -387,20 +706,20 @@ class InfoPanel extends React.Component {
       rc('h2', { className: 'text-lg font-bold mb-4' }, 'Market Info'),
       rc('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
         rc('div', null,
-            rc('div', { className: 'text-gray-400' }, '24h High'),
-            rc('div', { className: 'font-bold' }, '69,420.00')
+          rc('div', { className: 'text-gray-400' }, '24h High'),
+          rc('div', { className: 'font-bold' }, '69,420.00')
         ),
         rc('div', null,
-            rc('div', { className: 'text-gray-400' }, '24h Low'),
-            rc('div', { className: 'font-bold' }, '67,123.00')
+          rc('div', { className: 'text-gray-400' }, '24h Low'),
+          rc('div', { className: 'font-bold' }, '67,123.00')
         ),
         rc('div', null,
-            rc('div', { className: 'text-gray-400' }, '24h Volume (BTC)'),
-            rc('div', { className: 'font-bold' }, '1,234.56')
+          rc('div', { className: 'text-gray-400' }, '24h Volume (BTC)'),
+          rc('div', { className: 'font-bold' }, '1,234.56')
         ),
         rc('div', null,
-            rc('div', { className: 'text-gray-400' }, '24h Volume (USD)'),
-            rc('div', { className: 'font-bold' }, '84,567,890.12')
+          rc('div', { className: 'text-gray-400' }, '24h Volume (USD)'),
+          rc('div', { className: 'font-bold' }, '84,567,890.12')
         )
       )
     );
@@ -408,76 +727,196 @@ class InfoPanel extends React.Component {
 }
 
 class AssetsPanel extends React.Component {
-    render() {
-        const assets = [
-            { name: 'Bitcoin', symbol: 'BTC', amount: '1.2345', value: '84,000.00 USD' },
-            { name: 'Ethereum', symbol: 'ETH', amount: '10.5', value: '35,000.00 USD' },
-            { name: 'USD Coin', symbol: 'USDC', amount: '5,000.00', value: '5,000.00 USD' },
-        ];
+  constructor(props) {
+    super(props);
+    this.state = {
+      BTC: null,
+      USDC: null
+    };
+  }
 
-        return rc('div', { className: 'assets-panel bg-gray-900 p-4 rounded-lg text-white h-full' },
-            rc('h2', { className: 'text-lg font-bold mb-4' }, 'My Assets'),
-            rc('div', { className: 'space-y-4' },
-                assets.map(asset =>
-                    rc('div', { key: asset.symbol, className: 'flex justify-between items-center' },
-                        rc('div', null,
-                            rc('div', { className: 'font-bold' }, asset.name),
-                            rc('div', { className: 'text-sm text-gray-400' }, asset.symbol)
-                        ),
-                        rc('div', { className: 'text-right' },
-                            rc('div', { className: 'font-bold' }, asset.amount),
-                            rc('div', { className: 'text-sm text-gray-400' }, asset.value)
-                        )
-                    )
-                )
-            )
-        );
+  componentDidMount() {
+    this.fetchAssets();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.address !== prevProps.address && this.props.address) {
+      this.fetchAssets();
     }
+  }
+
+  fetchAssets = async () => {
+    if (!this.props.address) return;
+    const tokens = { BTC: 18, USDC: 6 };
+    const newState = {};
+    const addr = this.props.address.toLowerCase();
+    for (const [tick, dec] of Object.entries(tokens)) {
+      try {
+        const prefix = `base-${tick}-balance:${addr}`;
+        const response = await fetch(`${TESTNET_INDEXER_URL}/api/get_latest_state?prefix=${prefix}`);
+        const data = await response.json();
+        const val = data.result;
+        newState[tick] = val && val !== '0' ? ethers.formatUnits(toBigInt(val), dec) : '0';
+      } catch (e) {
+        newState[tick] = '0';
+      }
+    }
+    this.setState(newState);
+  }
+
+  render() {
+    const assets = [
+      { tick: 'BTC', amount: this.state.BTC || '0' },
+      { tick: 'USDC', amount: this.state.USDC || '0' }
+    ];
+
+    return rc('div', { className: 'assets-panel bg-gray-900 p-4 rounded-lg text-white h-full' },
+      rc('h2', { className: 'text-lg font-bold mb-4' }, 'My Assets'),
+      rc('div', { className: 'space-y-4' },
+        assets.map(asset =>
+          rc('div', { key: asset.tick, className: 'flex justify-between items-center' },
+            rc('div', null,
+              rc('div', { className: 'font-bold' }, asset.tick)
+            ),
+            rc('div', { className: 'text-right font-mono' }, asset.amount)
+          )
+        )
+      )
+    );
+  }
 }
 
 class ToolPanel extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            isDarkTheme: true
-        };
-    }
+  constructor(props) {
+    super(props);
+    this.state = {
+      isDarkTheme: true
+    };
+  }
 
-    toggleTheme = () => {
-        this.setState(prevState => ({ isDarkTheme: !prevState.isDarkTheme }));
-        // In a real app, you'd also change the CSS classes on the body
-    }
+  toggleTheme = () => {
+    this.setState(prevState => ({ isDarkTheme: !prevState.isDarkTheme }));
+  }
 
-    render() {
-        return rc('div', { className: 'tool-panel bg-gray-900 p-4 rounded-lg text-white' },
-            rc('h2', { className: 'text-lg font-bold mb-4' }, 'Tools & Settings'),
-            rc('div', { className: 'flex justify-between items-center' },
-                rc('span', null, 'Dark Theme'),
-                rc('label', { className: 'switch' },
-                    rc('input', { type: 'checkbox', checked: this.state.isDarkTheme, onChange: this.toggleTheme }),
-                    rc('span', { className: 'slider round' })
-                )
-            )
-        );
-    }
+  render() {
+    return rc('div', { className: 'tool-panel bg-gray-900 p-4 rounded-lg text-white' },
+      rc('h2', { className: 'text-lg font-bold mb-4' }, 'Tools & Settings'),
+      rc('div', { className: 'flex justify-between items-center' },
+        rc('span', null, 'Dark Theme'),
+        rc('label', { className: 'switch' },
+          rc('input', { type: 'checkbox', checked: this.state.isDarkTheme, onChange: this.toggleTheme }),
+          rc('span', { className: 'slider round' })
+        )
+      )
+    );
+  }
 }
-
 
 class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      screenWidth: window.innerWidth
+      screenWidth: window.innerWidth,
+      ethAddress: null,
+      provider: null,
+      signer: null,
+      walletLoading: true,
+      orderbook: null,
+      lastBlock: null,
+      trades: [],
+      streamTrades: null,
     };
+    this.ws = null;
+    this.reconnectTimeout = null;
   }
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
-    document.body.className = 'bg-gray-800';
+    this.initializeWallet();
+    this.loadInitialMarketData();
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (accounts) => {
+        this.initializeWallet();
+      });
+    }
   }
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    this.teardownStream();
+    if (window.ethereum && window.ethereum.removeListener) {
+      window.ethereum.removeListener('accountsChanged', this.initializeWallet);
+    }
+  }
+
+  loadInitialMarketData = async () => {
+    try {
+      const response = await fetch(`${TESTNET_INDEXER_URL}/api/orderbook?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}`);
+      const data = await response.json();
+      this.setState(
+        {
+          orderbook: { buys: data.buys, sells: data.sells },
+          lastBlock: null
+        },
+        () => this.startStream()
+      );
+    } catch (error) {
+      console.error('Failed to load market data:', error);
+    }
+  }
+
+  initializeWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      this.setState({ walletLoading: false });
+      return;
+    }
+
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+
+      if (accounts.length > 0) {
+        const ethAddress = accounts[0];
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        this.setState({ ethAddress, provider, signer });
+      } else {
+        this.setState({ ethAddress: null, provider: null, signer: null });
+      }
+    } catch (error) {
+      console.error('Error initializing wallet:', error);
+    } finally {
+      this.setState({ walletLoading: false });
+    }
+  }
+
+  handleWalletLogin = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      alert('Wallet not installed!');
+      return;
+    }
+
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const ethAddress = accounts[0];
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      this.setState({ ethAddress, provider, signer, walletLoading: false });
+    } catch (error) {
+      console.error('Error logging in:', error);
+      this.setState({ walletLoading: false });
+    }
+  }
+
+  handleWalletLogout = async () => {
+    this.setState({
+      ethAddress: null,
+      provider: null,
+      signer: null,
+      walletLoading: false
+    });
   }
 
   handleResize = () => {
@@ -486,69 +925,176 @@ class App extends React.Component {
     });
   }
 
+  startStream = () => {
+    if (this.ws) return;
+    const wsUrl = TESTNET_INDEXER_URL.replace(/^http/, 'ws') + '/ws';
+
+    try {
+      this.ws = new WebSocket(wsUrl);
+    } catch (err) {
+      console.error('Failed to open websocket:', err);
+      return;
+    }
+
+    this.ws.onopen = () => console.log('WebSocket connected');
+
+    this.ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        this.handleStreamMessage(payload);
+      } catch (err) {
+        console.error('Failed to parse stream message:', err);
+      }
+    };
+
+    this.ws.onerror = (err) => {
+      console.error('Websocket error:', err);
+    };
+
+    this.ws.onclose = () => {
+      console.log('WebSocket disconnected, reconnecting...');
+      this.ws = null;
+      this.scheduleReconnect();
+    };
+  }
+
+  teardownStream = () => {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (!this.ws) return;
+    this.ws.onopen = null;
+    this.ws.onclose = null;
+    this.ws.onmessage = null;
+    this.ws.onerror = null;
+    try {
+      this.ws.close();
+    } catch (_) { }
+    this.ws = null;
+  }
+
+  scheduleReconnect = () => {
+    if (this.reconnectTimeout) return;
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.teardownStream();
+      this.startStream();
+    }, 2000);
+  }
+
+  handleStreamMessage = (payload) => {
+    if (!payload) return;
+
+    if (payload.type === 'orderbook' || payload.orderbook || payload.bids || payload.asks || payload.buys || payload.sells) {
+      const bids = payload.bids || payload.buys || (payload.orderbook && payload.orderbook.bids) || [];
+      const asks = payload.asks || payload.sells || (payload.orderbook && payload.orderbook.asks) || [];
+      if (Array.isArray(bids) || Array.isArray(asks)) {
+        this.setState({
+          orderbook: {
+            bids,
+            asks,
+            buys: bids,
+            sells: asks
+          }
+        });
+      }
+    }
+
+    if (payload.type === 'trade' && payload.price !== undefined) {
+      const trade = {
+        price: payload.price,
+        amount: payload.amount,
+        timestamp: payload.timestamp,
+        side: payload.side
+      };
+      this.setState(prev => ({
+        trades: [trade, ...prev.trades].slice(0, 200),
+        streamTrades: [trade]
+      }));
+      return;
+    }
+
+    if (payload.type === 'trade' || payload.trades) {
+      const incomingTrades = payload.trades || (payload.trade ? [payload.trade] : []);
+      if (incomingTrades && incomingTrades.length > 0) {
+        this.setState(prev => ({
+          trades: [...incomingTrades, ...prev.trades].slice(0, 200),
+          streamTrades: incomingTrades
+        }));
+      }
+      if (payload.last_block) {
+        this.setState({ lastBlock: payload.last_block });
+      }
+    }
+  }
+
   render() {
     const commonLayout = (mainPanel, sidePanel1, sidePanel2) => {
-        return rc('div', { className: 'app' },
-            rc(Header, null),
-            rc('main', { className: 'p-4' },
-                rc('div', { className: 'flex flex-col lg:flex-row gap-4' },
-                    rc('div', { className: 'flex-grow' },
-                        mainPanel
-                    ),
-                    rc('div', { className: 'w-full lg:w-80 space-y-4' },
-                        sidePanel1,
-                        sidePanel2
-                    )
-                )
+      return rc('div', { className: 'app' },
+        rc(Header, { walletState: this.state, handleWalletLogin: this.handleWalletLogin, handleWalletLogout: this.handleWalletLogout }),
+        rc('main', { className: 'p-4' },
+          rc('div', { className: 'flex flex-col lg:flex-row gap-4' },
+            rc('div', { className: 'flex-grow' },
+              mainPanel
+            ),
+            rc('div', { className: 'w-full lg:w-80 space-y-4' },
+              sidePanel1,
+              sidePanel2
             )
-        );
+          )
+        )
+      );
     };
 
     const mainContent = rc('div', { className: 'space-y-4' },
-        rc(ChartPanel, null),
-        rc(InfoPanel, null)
+      rc(ChartPanel, {
+        streamTrades: this.state.streamTrades,
+      }),
+      rc(InfoPanel, null)
     );
 
-    const marketPanel = rc(MarketPanel, null);
-    const orderPanel = rc(OrderPanel, null);
-    const assetsPanel = rc(AssetsPanel, null);
+    const orderPanelWithSigner = rc(OrderPanel, { signer: this.state.signer });
+    const marketPanel = rc(MarketPanel, { orderbook: this.state.orderbook, trades: this.state.trades });
+    const assetsPanel = rc(AssetsPanel, { address: this.state.ethAddress });
     const toolPanel = rc(ToolPanel, null);
 
-    if (this.state.screenWidth < 960) { // Mobile layout
-        return commonLayout(
-            rc('div', { className: 'space-y-4' }, mainContent, orderPanel, marketPanel, assetsPanel, toolPanel),
-            null,
-            null
-        );
+    if (this.state.screenWidth < 960) {
+      return commonLayout(
+        rc('div', { className: 'space-y-4' }, mainContent, orderPanelWithSigner, marketPanel, assetsPanel, toolPanel),
+        null,
+        null
+      );
     }
 
-    if (this.state.screenWidth < 1400) { // Tablet layout
-        return commonLayout(
-            mainContent,
-            rc('div', { className: 'space-y-4' }, orderPanel, marketPanel),
-            rc('div', { className: 'space-y-4' }, assetsPanel, toolPanel)
-        );
+    if (this.state.screenWidth < 1400) {
+      return commonLayout(
+        mainContent,
+        rc('div', { className: 'space-y-4' }, orderPanelWithSigner, marketPanel),
+        rc('div', { className: 'space-y-4' }, assetsPanel, toolPanel)
+      );
     }
 
-    // Desktop layout
     return rc('div', { className: 'app' },
-        rc(Header, null),
-        rc('main', { className: 'p-4' },
-            rc('div', { className: 'flex gap-4' },
-                rc('div', { className: 'flex-grow space-y-4' },
-                    rc(InfoPanel, null),
-                    rc(ChartPanel, null),
-                    rc(AssetsPanel, null)
-                ),
-                rc('div', { className: 'w-80 space-y-4' },
-                    rc(MarketPanel, null),
-                    rc(ToolPanel, null)
-                ),
-                rc('div', { className: 'w-80 space-y-4' },
-                    rc(OrderPanel, null)
-                )
-            )
+      rc(Header, { walletState: this.state, handleWalletLogin: this.handleWalletLogin, handleWalletLogout: this.handleWalletLogout }),
+      rc('main', { className: 'p-4' },
+        rc('div', { className: 'flex gap-4' },
+          rc('div', { className: 'flex-grow space-y-4' },
+            rc(InfoPanel, null),
+            rc(ChartPanel, {
+              streamTrades: this.state.streamTrades,
+            }),
+            rc(AssetsPanel, { address: this.state.ethAddress })
+          ),
+          rc('div', { className: 'w-80 space-y-4' },
+            marketPanel,
+            rc(ToolPanel, null)
+          ),
+          rc('div', { className: 'w-80 space-y-4' },
+            orderPanelWithSigner
+          )
         )
+      )
     );
   }
 }
