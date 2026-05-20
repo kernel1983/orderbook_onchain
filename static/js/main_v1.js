@@ -41,16 +41,10 @@ class Header extends React.Component {
     const { ethAddress, walletLoading } = this.props.walletState;
     return rc('header', { className: 'header p-4 flex items-center bg-gray-800 text-white' },
       rc('div', { className: 'logo flex items-center' },
-        rc('img', { src: 'logo.svg', alt: 'Logo', className: 'h-8 w-8 mr-2' }),
+        // rc('img', { src: 'logo.svg', alt: 'Logo', className: 'h-8 w-8 mr-2' }),
         rc('span', { className: 'text-xl font-bold' }, 'OrderBook')
       ),
-      rc('nav', { className: 'menu' },
-        rc('ul', { className: 'flex space-x-4' },
-          rc('li', null, rc('a', { href: '#', className: 'hover:text-gray-400' }, 'Home')),
-          rc('li', null, rc('a', { href: '#', className: 'hover:text-gray-400' }, 'About')),
-          rc('li', null, rc('a', { href: '#', className: 'hover:text-gray-400' }, 'Contact'))
-        )
-      ),
+      rc('span', { className: 'text-xs text-gray-400 ml-4 px-2 py-0.5 border border-gray-600 rounded' }, 'Zentra Testnet3'),
       rc('div', { className: 'login ml-auto flex items-center gap-2' },
         walletLoading ?
           null :
