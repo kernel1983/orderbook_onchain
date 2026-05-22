@@ -165,10 +165,13 @@ class ChartPanel extends React.Component {
           });
           last = filled[filled.length - 1];
         }
+        const MAX_CANDLES = { '1s': 300, '1m': 300, '5m': 300, '15m': 300, '1h': 200, '1d': 100 }[interval] || 300;
+        const trimmed = filled.length > MAX_CANDLES ? filled.slice(-MAX_CANDLES) : filled;
         if (this.candleSeries) {
-          this.candleSeries.setData(filled);
+          console.log(trimmed);
+          this.candleSeries.setData(trimmed);
         }
-        this.setState({ history: candles, localCandles: filled });
+        this.setState({ history: candles, localCandles: trimmed });
       } else {
         this.setState({ history: candles, localCandles: candles });
       }
