@@ -462,7 +462,7 @@ class OrderPanel extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      activeTab: 'Limit',
+      activeTab: localStorage.getItem('orderbook_activeTab') || 'Limit',
       tradeType: 'Buy',
       price: '68000',
       size: '',
@@ -565,6 +565,7 @@ class OrderPanel extends React.Component {
 
   handleTabChange = (tab) => {
     this.setState({ activeTab: tab });
+    localStorage.setItem('orderbook_activeTab', tab);
   };
 
   handleTradeTypeChange = (type) => {
