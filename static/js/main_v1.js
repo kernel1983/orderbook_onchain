@@ -1117,20 +1117,20 @@ class App extends React.Component {
     };
 
     const mainContent = rc('div', { className: 'space-y-4' },
+      rc(InfoPanel, null),
       rc(ChartPanel, {
         streamTrades: this.state.streamTrades,
-      }),
-      rc(InfoPanel, null)
+      })
     );
 
     const orderPanelWithSigner = rc(OrderPanel, { signer: this.state.signer });
     const marketPanel = rc(MarketPanel, { orderbook: this.state.orderbook, trades: this.state.trades });
     const assetsPanel = rc(AssetsPanel, { address: this.state.ethAddress });
-    const toolPanel = rc(ToolPanel, null);
+    // const toolPanel = rc(ToolPanel, null);
 
     if (this.state.screenWidth < 960) {
       return commonLayout(
-        rc('div', { className: 'space-y-4' }, mainContent, orderPanelWithSigner, marketPanel, assetsPanel, toolPanel),
+        rc('div', { className: 'space-y-4' }, mainContent, orderPanelWithSigner, marketPanel, assetsPanel/*, toolPanel*/),
         null,
         null
       );
@@ -1138,9 +1138,9 @@ class App extends React.Component {
 
     if (this.state.screenWidth < 1400) {
       return commonLayout(
-        mainContent,
+        rc('div', { className: 'space-y-4' }, mainContent, assetsPanel),
         rc('div', { className: 'space-y-4' }, orderPanelWithSigner, marketPanel),
-        rc('div', { className: 'space-y-4' }, assetsPanel, toolPanel)
+        null
       );
     }
 
@@ -1156,8 +1156,8 @@ class App extends React.Component {
             rc(AssetsPanel, { address: this.state.ethAddress })
           ),
           rc('div', { className: 'w-80 space-y-4' },
-            marketPanel,
-            rc(ToolPanel, null)
+            marketPanel
+            // rc(ToolPanel, null)
           ),
           rc('div', { className: 'w-80 space-y-4' },
             orderPanelWithSigner
