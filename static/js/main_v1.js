@@ -186,7 +186,7 @@ class ChartPanel extends React.Component {
       const MAX_CANDLES = { '1s': 300, '1m': 300, '5m': 300, '15m': 300, '1h': 200, '1d': 100 }[interval] || 300;
       const trimmed = filled.length > MAX_CANDLES ? filled.slice(-MAX_CANDLES) : filled;
       if (this.candleSeries) {
-        console.log(trimmed);
+        // console.log(trimmed);
         this.candleSeries.setData(trimmed);
       }
       this.setState({ history: candles, localCandles: trimmed });
@@ -264,7 +264,7 @@ class ChartPanel extends React.Component {
           volume: (oldC.volume || 0) + (trade.amount || 0),
           is_filled: false
         };
-        updatedIdx = foundIdx;
+        updatedIdx = updatedIdx < 0 ? foundIdx : Math.min(updatedIdx, foundIdx);
 
       } else if (bucket > localCandles[localCandles.length - 1].time) {
         const newC = {
@@ -277,7 +277,7 @@ class ChartPanel extends React.Component {
           is_filled: false
         };
         localCandles = [...localCandles, newC];
-        updatedIdx = localCandles.length - 1;
+        updatedIdx = updatedIdx < 0 ? localCandles.length - 1 : Math.min(updatedIdx, localCandles.length - 1);
 
       } else if (bucket < localCandles[0].time) {
         const newC = {
@@ -314,31 +314,32 @@ class ChartPanel extends React.Component {
           newC,
           ...localCandles.slice(insertIdx)
         ];
-        updatedIdx = insertIdx;
+        updatedIdx = updatedIdx < 0 ? insertIdx : Math.min(updatedIdx, insertIdx);
       }
     }
 
-    if (localCandles.length > MAX_CANDLES) {
-      localCandles = localCandles.slice(-MAX_CANDLES);
+    // if (localCandles.length > MAX_CANDLES) {
+    //   localCandles = localCandles.slice(-MAX_CANDLES);
+    // }
+
+    if (updatedIdx >= 0 && updatedIdx < localCandles.length) {
+      let lastClose = localCandles[updatedIdx].close;
+      for (let i = updatedIdx + 1; i < localCandles.length; i++) {
+        if (localCandles[i].is_filled === true) {
+          localCandles[i].open = lastClose;
+          localCandles[i].close = lastClose;
+          localCandles[i].high = lastClose;
+          localCandles[i].low = lastClose;
+        } else if (localCandles[i].is_filled === false) {
+          lastClose = localCandles[i].close;
+        }
+      }
     }
 
     if (localCandles.length > 1) {
       for (let i = 1; i < localCandles.length; i++) {
+        if (updatedIdx >= 0 && i > updatedIdx && localCandles[i].is_filled === true) continue;
         localCandles[i].open = localCandles[i-1].close;
-      }
-    }
-
-    if (updatedIdx >= 0) {
-      for (let i = updatedIdx + 1; i < localCandles.length; i++) {
-        if (localCandles[i].is_filled) {
-          localCandles[i].open = localCandles[i-1].close;
-          localCandles[i].close = localCandles[i-1].close;
-          localCandles[i].high = localCandles[i-1].close;
-          localCandles[i].low = localCandles[i-1].close;
-        }
-        if (!localCandles[i].is_filled) {
-          break;
-        }
       }
     }
 
