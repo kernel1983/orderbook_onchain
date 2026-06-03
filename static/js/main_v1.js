@@ -137,26 +137,43 @@ class ChartPanel extends React.Component {
       const response = await fetch(`${TESTNET_INDEXER_URL}/api/history?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}&interval=${interval}`);
       const data = await response.json();
       const candles = data.candles || [];
+      const lastTrade = data.last_trade_before_start || null;
 
-      if (candles.length > 0) {
-        const intervalSec = {
-          '1s': 1, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400
-        }[interval] || 3600;
-        const now = Math.floor(Date.now() / 1000);
-        const currentBucket = Math.floor(now / intervalSec) * intervalSec;
-        const filled = [candles[0]];
-        for (let i = 1; i < candles.length; i++) {
-          const prev = filled[filled.length - 1];
-          const curr = candles[i];
-          for (let t = prev.time + intervalSec; t < curr.time; t += intervalSec) {
-            filled.push({
-              time: t, open: prev.close, high: prev.close,
-              low: prev.close, close: prev.close, volume: 0, is_filled: true
-            });
-          }
-          curr.open = prev.close;
-          filled.push(curr);
+      const intervalSec = {
+        '1s': 1, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '1d': 86400
+      }[interval] || 3600;
+      const now = Math.floor(Date.now() / 1000);
+      const currentBucket = Math.floor(now / intervalSec) * intervalSec;
+
+      if (lastTrade) {
+        if (candles.length === 0) {
+          candles.push({
+            time: Math.floor(lastTrade.time / intervalSec) * intervalSec,
+            open: parseFloat(lastTrade.price),
+            high: parseFloat(lastTrade.price),
+            low: parseFloat(lastTrade.price),
+            close: parseFloat(lastTrade.price),
+            volume: 0,
+          });
+        } else {
+          candles[0].open = parseFloat(lastTrade.price);
         }
+      }
+
+      const filled = candles.length ? [candles[0]] : [];
+      for (let i = 1; i < candles.length; i++) {
+        const prev = filled[filled.length - 1];
+        const curr = candles[i];
+        for (let t = prev.time + intervalSec; t < curr.time; t += intervalSec) {
+          filled.push({
+            time: t, open: prev.close, high: prev.close,
+            low: prev.close, close: prev.close, volume: 0, is_filled: true
+          });
+        }
+        curr.open = prev.close;
+        filled.push(curr);
+      }
+      if (filled.length) {
         let last = filled[filled.length - 1];
         for (let t = last.time + intervalSec; t <= currentBucket; t += intervalSec) {
           filled.push({
@@ -165,16 +182,14 @@ class ChartPanel extends React.Component {
           });
           last = filled[filled.length - 1];
         }
-        const MAX_CANDLES = { '1s': 300, '1m': 300, '5m': 300, '15m': 300, '1h': 200, '1d': 100 }[interval] || 300;
-        const trimmed = filled.length > MAX_CANDLES ? filled.slice(-MAX_CANDLES) : filled;
-        if (this.candleSeries) {
-          console.log(trimmed);
-          this.candleSeries.setData(trimmed);
-        }
-        this.setState({ history: candles, localCandles: trimmed });
-      } else {
-        this.setState({ history: candles, localCandles: candles });
       }
+      const MAX_CANDLES = { '1s': 300, '1m': 300, '5m': 300, '15m': 300, '1h': 200, '1d': 100 }[interval] || 300;
+      const trimmed = filled.length > MAX_CANDLES ? filled.slice(-MAX_CANDLES) : filled;
+      if (this.candleSeries) {
+        console.log(trimmed);
+        this.candleSeries.setData(trimmed);
+      }
+      this.setState({ history: candles, localCandles: trimmed });
     } catch (error) {
       console.error('Failed to load history:', error);
     }
