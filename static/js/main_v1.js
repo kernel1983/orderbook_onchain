@@ -680,6 +680,30 @@ class OrderPanel extends React.Component {
     }
   };
 
+  claimMockUSDC = async () => {
+    const { signer } = this.props;
+    if (!signer) {
+      showToast('Please connect your wallet first.', 'error');
+      return;
+    }
+    const ZEN_ADDR = '0x00000000000000000000000000000000007a656e';
+    try {
+      const calldata = {
+        "p": "zentest3",
+        "f": "token_mint_free",
+        "a": ["USDC", ethers.parseUnits("1000", 6).toString()]
+      };
+      const tx = await signer.sendTransaction({
+        to: ZEN_ADDR,
+        data: ethers.hexlify(new TextEncoder().encode(JSON.stringify(calldata)))
+      });
+      showToast(`Mint tx sent: ${tx.hash}`, 'success');
+    } catch (error) {
+      console.error('Mint USDC failed:', error);
+      showToast('Mint USDC failed.', 'error');
+    }
+  };
+
   render() {
     const tradeTypeClass = this.state.tradeType === 'Buy' ? 'bg-green-500 hover:bg-green-700' : 'bg-red-500 hover:bg-red-700';
     const balanceToShow = `${this.state.balance.USDC.toFixed(2)} USDC`;
@@ -755,6 +779,14 @@ class OrderPanel extends React.Component {
           )
         ),
         rc('button', { className: `w-full mt-4 py-2 rounded text-white font-bold ${tradeTypeClass}`, onClick: this.placeOrder }, `Place ${this.state.tradeType} Order`)
+      ),
+      rc('div', { className: 'border-t border-gray-700 my-4' }),
+      rc('div', { className: 'space-y-3' },
+        rc('div', { className: 'text-center text-xs text-gray-500' },
+          'No test ETH? ',
+          rc('a', { href: 'https://www.alchemy.com/faucets/base-sepolia', target: '_blank', className: 'text-blue-400 hover:text-blue-300 underline' }, 'Claim Base Sepolia ETH')
+        ),
+        rc('button', { className: 'w-full py-2 rounded text-white font-bold bg-blue-600 hover:bg-blue-700', onClick: this.claimMockUSDC }, 'Claim 1000 Mock USDC')
       )
     );
   }
