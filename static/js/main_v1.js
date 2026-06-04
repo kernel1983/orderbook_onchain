@@ -793,25 +793,63 @@ class OrderPanel extends React.Component {
 }
 
 class InfoPanel extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      high: null, low: null, volume: null,
+      open: null, close: null, changePercent: null,
+      loading: true,
+    };
+  }
+
+  componentDidMount() {
+    this.fetchStats();
+    this.interval = setInterval(() => this.fetchStats(), 30000);
+  }
+
+  componentWillUnmount() {
+    if (this.interval) clearInterval(this.interval);
+  }
+
+  async fetchStats() {
+    try {
+      const resp = await fetch(`${TESTNET_INDEXER_URL}/api/stats_24h?base=${BASE_TOKEN}&quote=${QUOTE_TOKEN}`);
+      const data = await resp.json();
+      this.setState({ ...data, loading: false });
+    } catch (e) {
+      this.setState({ loading: false });
+    }
+  }
+
+  fmt(val, decimals = 2) {
+    if (val === null || val === undefined || val === 0) return '—';
+    return Number(val).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
   render() {
+    const s = this.state;
+    const changeColor = s.changePercent > 0 ? 'text-green-400' : s.changePercent < 0 ? 'text-red-400' : '';
+
     return rc('div', { className: 'info-panel bg-gray-900 p-4 rounded-lg text-white' },
       rc('h2', { className: 'text-lg font-bold mb-4' }, 'Market Info'),
       rc('div', { className: 'grid grid-cols-2 gap-4 text-sm' },
         rc('div', null,
           rc('div', { className: 'text-gray-400' }, '24h High'),
-          rc('div', { className: 'font-bold' }, '69,420.00')
+          rc('div', { className: 'font-bold' }, this.fmt(s.high, 2))
         ),
         rc('div', null,
           rc('div', { className: 'text-gray-400' }, '24h Low'),
-          rc('div', { className: 'font-bold' }, '67,123.00')
+          rc('div', { className: 'font-bold' }, this.fmt(s.low, 2))
         ),
         rc('div', null,
-          rc('div', { className: 'text-gray-400' }, '24h Volume (BTC)'),
-          rc('div', { className: 'font-bold' }, '1,234.56')
+          rc('div', { className: 'text-gray-400' }, '24h Change'),
+          rc('div', { className: `font-bold ${changeColor}` },
+            s.changePercent !== null ? `${s.changePercent >= 0 ? '+' : ''}${this.fmt(s.changePercent, 2)}%` : '—'
+          )
         ),
         rc('div', null,
-          rc('div', { className: 'text-gray-400' }, '24h Volume (USD)'),
-          rc('div', { className: 'font-bold' }, '84,567,890.12')
+          rc('div', { className: 'text-gray-400' }, '24h Volume'),
+          rc('div', { className: 'font-bold' }, this.fmt(s.volume, 4))
         )
       )
     );
